@@ -1,9 +1,13 @@
 import { Agent } from "@mastra/core/agent";
-import { model } from "../../config";
+import { getTrendsTool } from '../tools/getTrendsTool';
+import { getTopTweetsTool } from '../tools/getTopTweetsTool';
+import { summarizeTopicTool } from '../tools/summarizeTopicTool';
+import { generateTweetTool } from '../tools/generateTweetTool';
+import { model } from "../../../config";
 import { yourTool } from "../your-agent/your-tool";
 
 // Define Agent Name
-const name = "Your Agent";
+const name = "Trending topic Summarizer Agent";
 
 // Define instructions for the agent
 // TODO: Add link here for recommendations on how to properly define instructions for an agent.
@@ -22,8 +26,13 @@ const instructions = `
 `;
 
 export const yourAgent = new Agent({
-	name,
+      name,
 	instructions,
 	model,
-	tools: { yourTool },
+      tools: [
+            getTopTweetsTool,
+            getTopTweetsTool,
+            generateTweetTool,
+            summarizeTopicTool
+      ],
 });

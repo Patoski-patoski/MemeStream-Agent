@@ -15,4 +15,6 @@ export const model = createOllama({ baseURL }).chat(modelName, {
   simulateStreaming: true,
 });
 
-console.log(`ModelName: ${modelName}\nbaseURL: ${baseURL}`);
+model.supportsImageUrls = true;
+console.log(model)
+console.log(`ModelName: ${modelName}\nbaseURL: ${baseURL}`); 

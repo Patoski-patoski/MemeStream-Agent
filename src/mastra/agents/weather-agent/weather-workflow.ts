@@ -96,10 +96,15 @@ const fetchWeather = createStep({
     }
 
     const geocodingUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(inputData.city)}&count=1`;
+    console.log("geocodingUrl", geocodingUrl);
+    
     const geocodingResponse = await fetch(geocodingUrl);
+
     const geocodingData = (await geocodingResponse.json()) as {
       results: { latitude: number; longitude: number; name: string }[];
     };
+
+    console.log("geocodingData", geocodingData);
 
     if (!geocodingData.results?.[0]) {
       throw new Error(`Location '${inputData.city}' not found`);
@@ -120,6 +125,8 @@ const fetchWeather = createStep({
         temperature_2m: number[];
       };
     };
+
+    console.log("weatherURL: ", data);
 
     const forecast = {
       date: new Date().toISOString(),
