@@ -16,3 +16,5 @@ export const mastra = new Mastra({
 		timeout: 10000,
 	},
 });
+
+

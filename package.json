@@ -30,6 +30,7 @@
     "core": "link:@types/mastra/core",
     "dotenv": "^16.5.0",
     "ollama-ai-provider": "^1.2.0",
+    "playwright": "^1.53.2",
     "zod": "^3.25.67"
   },
   "devDependencies": {
