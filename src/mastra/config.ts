@@ -12,9 +12,7 @@ export const baseURL = process.env.API_BASE_URL ?? "http://127.0.0.1:11434/api";
 
 // Create and export the model instance
 export const model = createOllama({ baseURL }).chat(modelName, {
-  simulateStreaming: true,
+    simulateStreaming: true,
 });
 
-model.supportsImageUrls = true;
-console.log(model)
-console.log(`ModelName: ${modelName}\nbaseURL: ${baseURL}`); 
+console.log(`ModelName: ${modelName}\nbaseURL: ${baseURL}`);
