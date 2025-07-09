@@ -2,7 +2,7 @@
 
 import { Mastra } from "@mastra/core/mastra";
 import { PinoLogger } from "@mastra/loggers";
-import { weatherAgent } from "./agents/weather-agent/agents/weather-agents"; // This can be deleted later
+import { weatherAgent } from "./agents/weather-agent/agents/weather-agents"; // This can be deleted la
 import { weatherWorkflow } from "./agents/weather-agent/weather-workflow"; // This can be deleted later
 import { memeGeneratorWorkflow } from "./agents/meme-generator/meme-generator-workflow";
 import { memeGeneratorAgent } from "./agents/meme-generator/agents/meme-generator-agents";
