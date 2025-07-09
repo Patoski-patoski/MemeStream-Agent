@@ -6,3 +6,7 @@ dist
 *.db-*
 .env
 *.txt
+
+.env
+
+Dockerfile
