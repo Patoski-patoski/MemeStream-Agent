@@ -2,7 +2,7 @@
   "name": "agent-challenge",
   "version": "1.0.0",
   "main": ".mastra/output/index.mjs",
-  "type": "commonjs",
+  "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "deploy:agent": "nosana job post --file ./nos_job_def/nosana_mastra.json --market nvidia-3090 --timeout 30",
@@ -18,7 +18,6 @@
   "author": "",
   "license": "ISC",
   "description": "",
-  "type": "module",
   "engines": {
     "node": ">=20.9.0"
   },
@@ -32,12 +31,12 @@
     "dotenv": "^16.5.0",
     "ollama-ai-provider": "^1.2.0",
     "playwright": "^1.53.2",
-    "replicate": "^1.0.1",
     "zod": "^3.25.67"
   },
   "devDependencies": {
     "@biomejs/biome": "2.0.4",
     "@nosana/cli": "^1.0.52",
+    "@types/dotenv": "^8.2.3",
     "@types/node": "^24.0.3",
     "mastra": "^0.10.5",
     "typescript": "^5.8.3"
