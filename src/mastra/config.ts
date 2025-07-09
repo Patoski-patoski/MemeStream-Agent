@@ -1,11 +1,10 @@
+//src/mastra/config.ts
+
 import dotenv from "dotenv";
 import { createOllama } from "ollama-ai-provider";
-import { createTool } from '@mastra/core/tools';
-import { chromium } from 'playwright';
 import { z } from 'zod';
 
 dotenv.config();
-
 
 // Export all your environment variables
 // Defaults to Ollama qwen2.5:1.5b

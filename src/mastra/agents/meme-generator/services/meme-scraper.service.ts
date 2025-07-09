@@ -1,4 +1,4 @@
-
+// src/mastra/agents/meme-generator/services/meme-scraper.service.ts
 import { chromium, Browser, Page } from 'playwright';
 import { MemeSearchScraper } from '../scrapers/meme-search.scraper';
 import { MemeImagesScraper } from '../scrapers/meme-images.scraper';

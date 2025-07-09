@@ -1,6 +1,8 @@
+//src/mastra/agents/meme-generator/scrapers/meme-images.scraper.ts
+
 import { Page } from 'playwright';
 import { MemeImageData, RawImageData, RawImageDataSchema } from '../types';
-import { MemeUtils } from '../utils';
+import { MemeUtils } from '../utils/utils';
 
 export class MemeImagesScraper {
   private static readonly SELECTORS = {

@@ -1,5 +1,7 @@
 // This serves as an example, can be deleted later.
 
+//src/mastra/agents/weather-agent/agents/weather-agents.ts
+
 import { Agent } from "@mastra/core/agent";
 import { weatherTool } from "../tools/weather-tools";
 import { model } from "../../../config";

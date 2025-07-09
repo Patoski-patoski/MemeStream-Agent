@@ -1,7 +1,9 @@
+// src/mastra/agents/meme-generator/scrapers/meme-search.scraper.ts
+
 import { Page } from 'playwright';
 import { MemeSearchResult, MemeSearchResultSchema } from '../types';
-import { UrlUtils } from '../utils';
-import { appConfig } from '../config';
+import { UrlUtils } from '../utils/utils';
+import { appConfig } from '../../../config';
 
 export class MemeSearchScraper {
     private static readonly SELECTORS = {

@@ -1,4 +1,5 @@
-// run.ts
+// src/mastra/agents/meme-generator/run.ts
+
 import { MemeScraperService } from './services/meme-scraper.service';
 
 async function main(): Promise<void> {

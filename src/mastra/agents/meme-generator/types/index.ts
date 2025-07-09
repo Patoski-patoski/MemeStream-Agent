@@ -1,4 +1,4 @@
-// types.ts
+//src/mastra/agents/meme-generator/types/index.ts
 import { z } from 'zod';
 
 export const MemeInputSchema = z.object({

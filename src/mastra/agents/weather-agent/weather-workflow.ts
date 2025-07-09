@@ -1,3 +1,5 @@
+//src/mastra/agents/weather-agent/agents/weather-workflow.ts
+
 // This files serves as an example, can be deleted later.
 import { Agent } from "@mastra/core/agent";
 import { createStep, createWorkflow } from "@mastra/core/workflows";
