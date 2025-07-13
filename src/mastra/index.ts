@@ -1,16 +1,15 @@
-// File: src/mastra/index.ts
+//src/mastra/index.ts
 
 import { Mastra } from "@mastra/core/mastra";
 import { PinoLogger } from "@mastra/loggers";
+
 import { weatherAgent } from "./agents/weather-agent/agents/weather-agents"; // This can be deleted la
 import { weatherWorkflow } from "./agents/weather-agent/weather-workflow"; // This can be deleted later
-import { memeGeneratorWorkflow } from "./agents/meme-generator/meme-generator-workflow";
-import { memeGeneratorAgent } from "./agents/meme-generator/agents/meme-generator-agents";
-// import { yourAgent } from "./agents/trending-topic-agent/agents/agent"; // Build your agent here
+import { memeGeneratorWorkflow } from './agents/meme-generator/meme-generator-workflow'
 
 export const mastra = new Mastra({
-	workflows: { weatherWorkflow, memeGeneratorWorkflow },
-	agents: { weatherAgent, memeGeneratorAgent },
+	workflows: { memeGeneratorWorkflow, weatherWorkflow },
+	agents: { weatherAgent  },
 	logger: new PinoLogger({
 		name: "Mastra",
 		level: "info",
@@ -20,3 +19,18 @@ export const mastra = new Mastra({
 		timeout: 10000,
 	},
 });
+
+
+
+
+(async () => {
+	const run = await mastra.getWorkflow("memeGeneratorWorkflow").createRunAsync();
+
+	console.log("Run", run.runId);
+
+	const runResult = await run.start({
+		inputData: { memeName: "Chill guy" },
+	});
+
+	console.log("Final output:", runResult);
+})();

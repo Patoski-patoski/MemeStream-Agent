@@ -19,26 +19,9 @@ export const model = createOllama({ baseURL }).chat(modelName, {
     simulateStreaming: true,
 });
 
+model.supportsImageUrls = true,
+
+console.log("Model", model);
 console.log(`ModelName: ${modelName}\nbaseURL: ${baseURL}`);
 
 
-const ConfigSchema = z.object({
-    MEME_URL: z.string().url(),
-});
-
-function validateConfig() {
-    const configData = {
-        MEME_URL: process.env.MEME_URL,
-    };
-
-    const result = ConfigSchema.safeParse(configData);
-
-    if (!result.success) {
-        console.error("Configuration validation failed:", result.error.issues);
-        process.exit(1);
-    }
-
-    return result.data;
-}
-
-export const appConfig = validateConfig();
