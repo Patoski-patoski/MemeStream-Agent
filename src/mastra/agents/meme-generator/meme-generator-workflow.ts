@@ -22,7 +22,7 @@ import {
 
 config();
 
-const MEME_SEARCH_URL: string = process.env.MEME_URL;
+const MEME_SEARCH_URL: string = process.env.MEME_URL || "https://imgflip.com/memegenerator";
 
 const memeProvider = new Agent({
     name: "Meme Generator Agent",
