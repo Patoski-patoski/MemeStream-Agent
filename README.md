@@ -93,7 +93,7 @@ docker pull patrickpatoski/agent-challenge:latest
 docker run -p 8080:8080 --env-file .env patrickpatoski/agent-challenge:latest
 ```
 
-#### **Option 2: Build Locally (For Developers/Contributors)**
+#### **Option 2: If you forked the repo. Build Locally (For Developers/Contributors)**
 
 ```sh
 docker build -t yourdockerusername/agent-challenge:latest .
