@@ -86,9 +86,18 @@ src/mastra/agents/meme-generator/
 
 To build and run the agent in Docker:
 
+#### **Option 1: Pull and Run the Pre-built Image (Recommended for Most Users)**
+
 ```sh
-docker build -t yourusername/agent-challenge:latest .
-docker run -p 8080:8080 --env-file .env yourusername/agent-challenge:latest
+docker pull patrickpatoski/agent-challenge:latest
+docker run -p 8080:8080 --env-file .env patrickpatoski/agent-challenge:latest
+```
+
+#### **Option 2: Build Locally (For Developers/Contributors)**
+
+```sh
+docker build -t patrickpatoski/agent-challenge:latest .
+docker run -p 8080:8080 --env-file .env patrickpatoski/agent-challenge:latest
 ```
 
 ### Example Usage
