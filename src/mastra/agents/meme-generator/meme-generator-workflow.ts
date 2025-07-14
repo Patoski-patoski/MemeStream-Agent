@@ -13,13 +13,16 @@ import {
     MemeImageData
 } from '../meme-generator/types/types';
 
-import { createFullUrl, extractMemeImageData } from '../meme-generator/utils/utils';
+import { createFullUrl } from '../meme-generator/utils/utils';
 import { model } from '../../config';
-import { searchMemeAndGetFirstLink, scrapeMemeImagesFromPage } from '../meme-generator/tools/meme-generator-tools';
+import {
+    searchMemeAndGetFirstLink,
+    scrapeMemeImagesFromPage
+} from '../meme-generator/tools/meme-generator-tools';
 
 config();
 
-const MEME_SEARCH_URL: string = "https://imgflip.com/memegenerator";
+const MEME_SEARCH_URL: string = process.env.MEME_URL;
 
 const memeProvider = new Agent({
     name: "Meme Generator Agent",
@@ -88,7 +91,7 @@ const fetchMemeTemplates = createStep({
         const memeBlankImgUrl = inputData.memeBlankImgUrl;
         const memePageFullUrl = inputData.memePageFullUrl;
         const splitted: string = memePageFullUrl.split("/");
-        const memeName = splitted[splitted.length - 1]
+        const memeName = splitted[splitted.length - 1];
 
         try {
             const scrapedImages = await scrapeMemeImagesFromPage(page, memePageFullUrl);
@@ -107,7 +110,7 @@ const fetchMemeTemplates = createStep({
             const description = descriptionRes?.text?.trim() || "No description available.";
 
             const memeListPrompt = `Given the following meme templates:\n${formattedScrapedImages}\n
-             Beautifully arrange this list of available memes into 'Name' and 'URL' pairs.
+             Beautifully arrange this list of available memes into Name and image pairs.
              After presenting the list, also ask the user if they need a blank template to 
              create their own customized version.`;
 

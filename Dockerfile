@@ -2,7 +2,8 @@ FROM ollama/ollama:0.7.0
 
 # Qwen2.5:1.5b - Docker
 ENV API_BASE_URL=http://127.0.0.1:11434/api
-ENV MODEL_NAME_AT_ENDPOINT=qwen2.5:1.5b
+ENV MODEL_NAME_AT_ENDPOINT=qwen2.5:7b
+
 
 # Qwen2.5:32b = Docker
 # ENV API_BASE_URL=http://127.0.0.1:11434/api

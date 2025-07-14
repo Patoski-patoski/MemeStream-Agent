@@ -1,17 +1,14 @@
 {
   "ops": [
     {
-      "id": "agents",
+      "id": "memegeneratoragent",
       "args": {
         "gpu": true,
-        "image": "docker.io/yourusername/agent-challenge:latest",
+        "image": "docker.io/patrickpatoski/agent-challenge:latest",
         "expose": [
           {
             "port": 8080
           }
-        ],
-        "entrypoint": [
-          "/bin/sh"
         ]
       },
       "type": "container/run"
@@ -20,7 +17,7 @@
   "meta": {
     "trigger": "dashboard",
     "system_requirements": {
-      "required_vram": 8
+      "required_vram": 4
     }
   },
   "type": "container",
