@@ -10,7 +10,7 @@ import {
     FinalMemeOutputSchema,
     MemePageLinkSchema,
     MemeInput,
-    MemeImageData
+    MemeSearchResult,
 } from '../meme-generator/types/types';
 
 import { createFullUrl } from '../meme-generator/utils/utils';
@@ -51,9 +51,6 @@ const getMemeUrl = createStep({
                 const memePageUrl = createFullUrl(searchResult.memePageFullUrl, MEME_SEARCH_URL);
                 const memeBlankImgUrl = createFullUrl(searchResult.memeBlankImgUrl, MEME_SEARCH_URL);
 
-                console.log("Meme page URL:", memePageUrl);
-                console.log("Meme blank image URL:", memeBlankImgUrl);
-            
                 return {
                     memePageFullUrl: memePageUrl,
                     memeBlankImgUrl: memeBlankImgUrl,
@@ -62,7 +59,7 @@ const getMemeUrl = createStep({
                 console.log("Could not get meme page link or blank image URL.");
                 return {
                     memePageFullUrl: "",
-                    memeBlankImgUrl:~ "",
+                    memeBlankImgUrl: "",
                 };
             }
         } catch (error) {
@@ -81,7 +78,7 @@ const fetchMemeTemplates = createStep({
     inputSchema: MemePageLinkSchema,
     outputSchema: FinalMemeOutputSchema,
   
-    execute: async ({ inputData }: { inputData: MemeImageData }) => {
+    execute: async ({ inputData }: { inputData: MemeSearchResult }) => {
         if (!inputData || !inputData.memePageFullUrl) {
             throw new Error("Input data not found or invalid meme page URL");
         }
@@ -92,9 +89,14 @@ const fetchMemeTemplates = createStep({
         const memePageFullUrl = inputData.memePageFullUrl;
         const splitted: string = memePageFullUrl.split("/");
         const memeName = splitted[splitted.length - 1];
+        console.log("memeBlankImgUrl", memeBlankImgUrl);
+        console.log("memePageFullUrl", memePageFullUrl);
+        console.log("memeName", memeName);
 
         try {
             const scrapedImages = await scrapeMemeImagesFromPage(page, memePageFullUrl);
+
+            console.log("Scraped images:", scrapedImages);
 
             // Format the scrapedImages for the LLM
             const formattedScrapedImages = scrapedImages

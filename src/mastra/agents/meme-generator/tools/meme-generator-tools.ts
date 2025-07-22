@@ -48,8 +48,7 @@ export async function searchMemeAndGetFirstLink(page: Page, memeName: string): P
 }
 
 export async function scrapeMemeImagesFromPage(page: Page, memePageUrl: string): Promise<MemeImageData[]>{
-  await page.goto(memePageUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
-
+  await page.goto(memePageUrl, { waitUntil: 'domcontentloaded', timeout: 10000 });
   await page.waitForTimeout(2000);
 
   await page.evaluate(async () => {

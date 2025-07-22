@@ -21,14 +21,15 @@ export const mastra = new Mastra({
 });
 
 
-(async () => {
-	const run = await mastra.getWorkflow("memeGeneratorWorkflow").createRunAsync();
 
-	console.log("Run", run.runId);
+// (async () => {
+// 	const run = await mastra.getWorkflow("memeGeneratorWorkflow").createRunAsync();
 
-	const runResult = await run.start({
-		inputData: { memeName: "Distracted Boyfriend" },
-	});
+// 	console.log("Run", run.runId);
 
-	console.log("Final output:", runResult);
-})();
+// 	const runResult = await run.start({
+// 		inputData: { memeName: "Distracted Boyfriend" },
+// 	});
+
+// 	console.log("Final output:", runResult);
+// })();

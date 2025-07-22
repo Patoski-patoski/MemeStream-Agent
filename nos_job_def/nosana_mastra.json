@@ -5,6 +5,7 @@
       "args": {
         "gpu": true,
         "image": "docker.io/patrickpatoski/agent-challenge:latest",
+        "cmd": ["npx playwright install"],
         "expose": [
           {
             "port": 8080
@@ -15,8 +16,9 @@
     }
   ],
   "meta": {
-    "trigger": "dashboard",
+    "trigger": "cli",
     "system_requirements": {
+
       "required_vram": 4
     }
   },
