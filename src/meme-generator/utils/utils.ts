@@ -1,6 +1,7 @@
 // utils/utils.ts
+import { Type, GenerateContentConfig } from "@google/genai";
 import { Page } from 'playwright';
-import { MemeImageData } from '../types/types';
+import { MemeImageData } from '../types/types.js';
 
 
 function formatMemeAltText(text: string): string {
@@ -34,3 +35,18 @@ export async function extractMemeImageData(page: Page): Promise<MemeImageData[]>
         alt: formatMemeAltText(data.alt)
     }));
 }
+
+const tools: GenerateContentConfig[] = [
+    {
+        functions: [
+            {
+                name: "search_meme",
+                description: "Searches for a meme by name and returns the URL",
+                parameters: {
+                    type: Type.OBJECT,
+                    properties
+                }
+            }
+        ]
+    }
+]

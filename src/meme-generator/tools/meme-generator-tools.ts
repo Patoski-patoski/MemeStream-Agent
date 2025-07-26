@@ -1,20 +1,20 @@
-//src/mastra/agents/meme-generator/tools/meme-generator.tool.ts
+// src/agents/meme-generator/tools/meme-generator.tool.ts
 
-import { config } from 'dotenv';
+import dotenv from "dotenv";
 import { Page } from 'playwright';
 
-import {
-  MemeImageData,  
-  MemeSearchResult,
-} from '../types/types';
-import { createFullUrl, extractMemeImageData } from '../utils/utils';
+import {  MemeImageData, MemeSearchResult } from '../types/types.js';
+import { createFullUrl, extractMemeImageData } from '../utils/utils.js';
 
-config();
+dotenv.config();
+const MEME_SEARCH_URL: string = process.env.MEME_URL as string;
 
-const MEME_SEARCH_URL: string = process.env.MEME_URL || "https://imgflip.com/memegenerator";
+if (!MEME_SEARCH_URL) {
+  throw new Error("MEME_URL environment variable is not set.");
+}
 
 export async function searchMemeAndGetFirstLink(page: Page, memeName: string): Promise<MemeSearchResult | null> {
-  await page.goto(MEME_SEARCH_URL!, { waitUntil: 'domcontentloaded', timeout: 30000 });
+  await page.goto(MEME_SEARCH_URL, { waitUntil: 'domcontentloaded', timeout: 30000 });
 
   const searchInput = await page.$('#mm-search');
   if (!searchInput) {

@@ -1,45 +1,23 @@
 {
-  "name": "agent-challenge",
+  "name": "gemini-ts-app",
   "version": "1.0.0",
-  "main": ".mastra/output/index.mjs",
-  "type": "module",
+  "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "deploy:agent": "nosana job post --file ./nos_job_def/nosana_mastra.json --market nvidia-3090 --timeout 30",
-    "deploy:qwen": "nosana job post --file ./nos_job_def/qwen_nos_jb.json --market nvidia-3090 --timeout 30",
-    "dev": "mastra dev",
-    "build": "mastra build",
-    "start": "mastra start",
-    "lint": "biome lint ./src",
-    "format": "biome format ./src/** --write",
-    "check": "biome check ./src"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
-  "engines": {
-    "node": ">=20.9.0"
-  },
+  "type": "module",
   "dependencies": {
-    "@ai-sdk/google": "^1.2.22",
-    "@ai-sdk/openai": "^1.3.22",
-    "@mastra/core": "^0.10.8",
-    "@mastra/libsql": "^0.10.2",
-    "@mastra/loggers": "^0.10.2",
-    "@mastra/memory": "^0.10.3",
-    "core": "link:@types/mastra/core",
-    "dotenv": "^16.5.0",
-    "ollama-ai-provider": "^1.2.0",
+    "@google/genai": "^1.10.0",
+    "dotenv": "^17.2.0",
     "playwright": "^1.53.2",
-    "zod": "^3.25.67"
+    "typescript": "^5.8.3",
+    "zod": "^4.0.10"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.0.4",
-    "@nosana/cli": "^1.0.52",
-    "@types/dotenv": "^8.2.3",
-    "@types/node": "^24.0.3",
-    "mastra": "^0.10.5",
-    "typescript": "^5.8.3"
+    "@types/node": "^24.1.0"
   }
 }

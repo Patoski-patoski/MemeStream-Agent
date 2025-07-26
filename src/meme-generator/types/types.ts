@@ -6,28 +6,32 @@ export const MemeInputSchema = z.object({
 });
 
 export const MemePageLinkSchema = z.object({
-  memePageFullUrl: z.string().url().describe(),
-  memeBlankImgUrl: z.string().url().describe(),
+  memePageFullUrl: z.url(),
+  memeBlankImgUrl: z.url(),
 });
 
 // Represent a single scraped meme image
 export const ScrapedMemeImageSchema = z.object({
-  alt: z.string().describe(),
-  src: z.string().url().describe(),
+  alt: z.string(),
+  src: z.url(),
 });
 
-// This schema represents the array of scraped meme images, NOT a single image.
 // This is used for the return type of scrapeMemeImagesFromPage if it only returns images.
 export const ScrapedMemeImagesArraySchema = z.array(ScrapedMemeImageSchema);
 
 
 // This is the combined final output for the workflow
 export const FinalMemeOutputSchema = z.object({
-  pageUrl: z.string().url().describe(),
-  blankTemplateUrl: z.string().url().describe(),
-  description: z.string().describe(),
-  memeExamples: ScrapedMemeImagesArraySchema.describe(),
+  pageUrl: z.url(),
+  blankTemplateUrl: z.url(),
+  description: z.string(),
+  memeExamples: ScrapedMemeImagesArraySchema,
 });
+
+export type ContentPart = 
+  | { text: string }
+  | { functionCall: { name: string; args: Record<string, any> } }
+  | { functionResponse: { name: string; response: Record<string, any> } };
 
 
 export type MemeInput = z.infer<typeof MemeInputSchema>;

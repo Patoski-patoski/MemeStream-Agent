@@ -1,1 +1,0 @@
-import { mastra } from "../../../index";
