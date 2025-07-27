@@ -2,7 +2,7 @@
 
 import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
-import { chromium, Browser, Page } from 'playwright'; // Import Playwright components
+import { chromium, Browser, Page } from 'playwright';
 
 import {
     searchMemeAndGetFirstLink,
@@ -15,8 +15,7 @@ import {
     MemeImageData
 } from '../types/types.js';
 
-import { tools } from "../utils/utils.js";
-import { string } from "zod";
+import { tools } from "../utils/utils.js"; // This holds your tool definitions
 
 dotenv.config();
 
@@ -30,119 +29,194 @@ const toolFunctions: Record<string, Function> = {
 
 // Main function to run the agent
 async function runMemeAgent(memeNameInput: string) {
-    let browser: Browser | undefined; // Declare browser variable
-    let page: Page | undefined; // Declare page variable
+    let browser: Browser | undefined;
+    let page: Page | undefined;
 
     try {
-        browser = await chromium.launch(); // Launch a browser instance
-        page = await browser.newPage(); // Open a new page
+        browser = await chromium.launch();
+        page = await browser.newPage();
 
-        // Initial conversation history
+        // Initial conversation history to prompt the model for the first tool call
         let contents: { role: string, parts: ContentPart[] }[] = [
             {
-                role: "system",
+                role: "user",
                 parts: [
-                    { text: "You are a helpful meme generator agent. Your task is to find a meme, extract its URL, and then scrape its associated images. Finally, present the found URL and images to the user. You have access to tools for searching and scraping." }
+                    { text: "You are a helpful meme generator agent. Your primary task is to find a meme, extract its URL, and then scrape its associated images. Once complete, you will present the found URL and images to the user in a concise, well-formatted summary. You have access to tools for searching and scraping." }
                 ]
             },
             {
                 role: "user",
-                // Start with a general request, let the model decide to call search_meme
                 parts: [{ text: `Please find the meme named "${memeNameInput}" and show me its main URL and associated images.` }]
             }
         ];
 
-        let executionCount = 0; // Prevent infinite loops
-        const MAX_EXECUTION_STEPS = 5; // Max steps for the agent to take
+        // --- Agent Step 1: Model decides to search for the meme ---
+        console.log(`\n--- Agent Step 1: Model deciding to search for "${memeNameInput}" ---`);
+        const resultStep1 = await ai.models.generateContent({
+            model: modelName,
+            contents,
+            config: { tools }
+        });
 
-        while (executionCount < MAX_EXECUTION_STEPS) {
-            executionCount++;
-            console.log(`\n--- Agent Step ${executionCount} ---`);
-            console.log("Current conversation history:", JSON.stringify(contents, null, 2));
+        // Append model's response (expected to be functionCall for search_meme)
+        if (resultStep1.candidates && resultStep1.candidates[0] && resultStep1.candidates[0].content) {
+            contents.push(resultStep1.candidates[0].content as { role: string; parts: ContentPart[]; });
+            console.log("Appended model's content to history:", JSON.stringify(contents[contents.length - 1], null, 2));
+        } else {
+            console.error("Agent failed to initiate search. No candidate content from initial model call.");
+            return;
+        }
 
-            const result = await ai.models.generateContent({
+        const functionCallStep1 = resultStep1.functionCalls?.[0];
+
+        if (!functionCallStep1 || functionCallStep1.name !== "search_meme") {
+            console.error("Expected 'search_meme' function call in Step 1, but got:", functionCallStep1);
+            console.log("Model's text response:", resultStep1.text); // Print any text response it might have given
+            return;
+        }
+
+        console.log(`\n--- Agent Step 2: Executing search_meme tool ---`);
+        console.log("Function call detected:", JSON.stringify(functionCallStep1, null, 2));
+
+        // Execute the search_meme tool
+        const memeSearchResult = await toolFunctions[functionCallStep1.name](page, functionCallStep1.args!.memeName) as MemeSearchResult;
+        console.log(`Tool response for ${functionCallStep1.name}:`, JSON.stringify(memeSearchResult, null, 2));
+
+        // Append search_meme tool's response to history
+        contents.push({
+            role: 'tool',
+            parts: [{ functionResponse: { name: functionCallStep1.name, response: memeSearchResult } }]
+        });
+        console.log("Appended tool's response to history:", JSON.stringify(contents[contents.length - 1], null, 2));
+
+        if (!memeSearchResult || !memeSearchResult.memePageFullUrl) {
+            console.log(`Could not find a meme page for "${memeNameInput}".`);
+            // Add a final user prompt to tell the model to respond about not finding the meme
+            contents.push({
+                role: 'user',
+                parts: [{ text: `I could not find a meme page for "${memeNameInput}". Please inform the user.` }]
+            });
+            const finalResult = await ai.models.generateContent({
                 model: modelName,
                 contents,
-                config: { tools } // Pass the tools config
+            });
+            console.log("\n--- Final AI Response ---");
+            console.log(finalResult.text);
+            return;
+        }
+
+        // --- Agent Step 3: Model decides to scrape images ---
+        // This step is crucial to get the model to explicitly call `scrape_meme_images`
+        console.log(`\n--- Agent Step 3: Model deciding to scrape images for "${memeNameInput}" ---`);
+        const resultStep3 = await ai.models.generateContent({
+            model: modelName,
+            contents,
+            config: { tools }
+        });
+
+        // Append model's response (expected to be functionCall for scrape_meme_images)
+        if (resultStep3.candidates && resultStep3.candidates[0] && resultStep3.candidates[0].content) {
+            contents.push(resultStep3.candidates[0].content as { role: string; parts: ContentPart[]; });
+            console.log("Appended model's content to history:", JSON.stringify(contents[contents.length - 1], null, 2));
+        } else {
+            console.error("Agent failed to get scrape image instruction from model. No candidate content from model call.");
+            return;
+        }
+
+        const functionCallStep3 = resultStep3.functionCalls?.[0];
+
+        if (!functionCallStep3 || functionCallStep3.name !== "scrape_meme_images") {
+            console.error("Expected 'scrape_meme_images' function call in Step 3, but got:", functionCallStep3);
+            console.log("Model's text response:", resultStep3.text);
+            return;
+        }
+
+        // --- Agent Step 4: Triggering scrape_meme_images concurrently with streaming origin ---
+        console.log(`\n--- Agent Step 4: Executing scrape_meme_images tool and streaming origin story ---`);
+        console.log("Function call detected:", JSON.stringify(functionCallStep3, null, 2));
+
+
+        // Start the meme origin story stream immediately
+        const originStreamPromise = (async () => {
+            const originContents: { role: string; parts: ContentPart[] }[] = [
+                {
+                    role: "user",
+                    parts: [{ text: "You are a helpful assistant specialized in meme history. When asked about a meme, provide its origin story, how it's typically used, and how it became popular. Keep it concise but informative." }]
+                },
+                {
+                    role: "user",
+                    parts: [{ text: `Tell me about the origin of the "${memeNameInput}" meme.` }]
+                }
+            ];
+
+            const streamResult = await ai.models.generateContentStream({
+                model: modelName,
+                contents: originContents,
+                // Do NOT pass tools config for this stream
             });
 
-            console.log("Model raw response:", JSON.stringify(result, null, 2));
-
-            // Append model's response (text or functionCall) to history
-            if (result.candidates
-                && result.candidates[0]
-                && result.candidates[0].content)
-            {
-                contents.push(result.candidates[0].content as { role: string; parts: ContentPart[]; });
-                console.log("Appended model's content to history:", JSON.stringify(contents[contents.length - 1], null, 2));
-            }
-
-            if (result.functionCalls && result.functionCalls.length > 0) {
-                const functionCall = result.functionCalls[0];
-                console.log("Function call detected:", JSON.stringify(functionCall, null, 2));
-
-                const { name, args } = functionCall;
-
-                // Crucial check: Does the requested function exist in our toolFunctions map?
-                if (typeof name !== "string" || !toolFunctions[name]) {
-                    console.error(`Error: Model requested an unknown function call: ${name}. Stopping.`);
-                    // Optionally, tell the model it called an unknown function
-                    contents.push({
-                        role: 'tool',
-                        parts: [{ functionResponse: { name: name as string, response: { error: `Unknown tool: ${name}` } } }]
-                    });
-                    continue; // Continue loop to let model handle error or generate final text
+            console.log("\n--- Meme Origin Story (Streaming) ---");
+            let streamedText = "";
+            for await (const chunk of streamResult) {
+                const textChunk = chunk.text;
+                if (textChunk) {
+                    process.stdout.write(textChunk);
+                    streamedText += textChunk;
                 }
-
-                console.log(`Executing tool: ${name} with args:`, args);
-
-                // Pass the Playwright page object to the tool functions
-                let toolResponse: MemeSearchResult | MemeImageData[] | any; // Use 'any' for general until specific structure is known
-                if (args) {
-                    if (name === "search_meme" && typeof args.memeName === "string") {
-                        toolResponse = await toolFunctions[name](page, args.memeName);
-                    } else if (name === "scrape_meme_images" && args.memePageUrl) {
-                        toolResponse = await toolFunctions[name](page, args.memePageUrl);
-                    } else {
-                        console.error(`Handler not implemented for tool: ${name}`);
-                        toolResponse = { error: `Handler not implemented for tool: ${name}` };
-                    } 
-                }
-
-                console.log(`Tool response for ${name}:`, JSON.stringify(toolResponse, null, 2));
-
-                const functionResponsePart: ContentPart = {
-                    functionResponse: {
-                        name: functionCall.name as string,
-                        response: toolResponse,
-                    }
-                };
-
-                // Append tool's response to history
-                contents.push({ role: 'tool', parts: [functionResponsePart] });
-                console.log("Appended tool's response to history:", JSON.stringify(contents[contents.length - 1], null, 2));
-
-            } else {
-                // No more function calls, print the final response and break the loop
-                console.log("\n--- Final AI Response ---");
-                console.log(result.text);
-                break; // Exit the loop when no more function calls
             }
+            console.log("\n--- End of Origin Story ---");
+            return streamedText;
+        })();
 
-            if (executionCount >= MAX_EXECUTION_STEPS) {
-                console.warn(`\nWarning: Agent reached maximum execution steps (${MAX_EXECUTION_STEPS}). Exiting loop.`);
-                console.log("Last AI response:", result?.text || "No final text response.");
-            }
-        }
-       
+        // Execute the scrape_meme_images tool
+        const scrapedImagesPromise = (async () => {
+            const scrapedImages = await toolFunctions.scrape_meme_images(page, memeSearchResult.memePageFullUrl) as MemeImageData[];
+            return { images: scrapedImages }; // Wrap array in object
+        })();
+
+        // Wait for both the streaming text to finish AND the scraping to complete
+        const [fullOriginStory, scrapedImagesResult] = await Promise.all([
+            originStreamPromise,
+            scrapedImagesPromise
+        ]);
+
+        console.log(`Tool response for scrape_meme_images:`, JSON.stringify(scrapedImagesResult, null, 2));
+
+        // Append scrape_meme_images tool's response to history
+        contents.push({
+            role: 'tool',
+            parts: [{ functionResponse: { name: functionCallStep3.name, response: scrapedImagesResult } }]
+        });
+        console.log("Appended tool's response to history:", JSON.stringify(contents[contents.length - 1], null, 2));
+
+
+        // --- Agent Step 5: Generating Final Response ---
+        console.log(`\n--- Agent Step 5: Generating Final User-Facing Response ---`);
+
+        // Add a final user prompt to guide the model to summarize and present
+        contents.push({
+            role: 'user',
+            parts: [{ text: `I have completed searching for the meme and scraping its images. The main meme page URL is ${memeSearchResult.memePageFullUrl}. Please provide a clear and concise summary of the meme, including its main URL, and a well-formatted list of the URLs for the scraped images. Present the images as a bulleted list, with each item showing the 'alt' text and the 'src' URL, e.g., "- Alt Text: [image-url-here.jpg]".` }]
+        });
+
+        // Generate the final comprehensive response
+        const finalResult = await ai.models.generateContent({
+            model: modelName,
+            contents,
+            // Tools are not strictly necessary here, but keeping it doesn't harm
+            config: { tools }
+        });
+
+        console.log("\n--- Final AI Response ---");
+        console.log(finalResult.text);
 
     } catch (error) {
         console.error("An error occurred during agent execution:", error);
     } finally {
         if (page) await page.close();
-        if (browser) await browser.close(); // Close browser when done
+        if (browser) await browser.close();
     }
 }
 
-const memeToFind = "Distracted Boyfriend"; // Or "Chillguy" from your original
+const memeToFind = "Distracted Boyfriend";
 runMemeAgent(memeToFind);
