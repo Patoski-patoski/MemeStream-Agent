@@ -1,4 +1,4 @@
-// src/agents/meme-generator/tools/meme-generator.tool.ts
+// src/meme-generator/tools/meme-generator.tool.ts
 
 import dotenv from "dotenv";
 import { Page } from 'playwright';

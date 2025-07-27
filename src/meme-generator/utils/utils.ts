@@ -1,5 +1,6 @@
-// utils/utils.ts
-import { Type, GenerateContentConfig } from "@google/genai";
+// src/meme-generator/utils/utils.ts
+
+import { Type } from "@google/genai";
 import { Page } from 'playwright';
 import { MemeImageData } from '../types/types.js';
 
@@ -36,17 +37,41 @@ export async function extractMemeImageData(page: Page): Promise<MemeImageData[]>
     }));
 }
 
-const tools: GenerateContentConfig[] = [
+export const tools = [
     {
-        functions: [
+        functionDeclarations: [
             {
                 name: "search_meme",
                 description: "Searches for a meme by name and returns the URL",
                 parameters: {
                     type: Type.OBJECT,
-                    properties
-                }
-            }
-        ]
+                    properties: {
+                        memeName: {
+                            type: Type.STRING,
+                            description: "The name of the meme to search for"
+                        },
+                    },
+                    required: ["memeName"],
+                },
+            },
+        ],
+    },
+    {
+        functionDeclarations: [
+            {
+                name: "scrape_meme_images",
+                description: "Scrapes images from a meme page",
+                parameters: {
+                    type: Type.OBJECT,
+                    properties: {
+                        memePageUrl: {
+                            type: Type.STRING,
+                            description: "The URL of the meme page to scrape images from"
+                        },
+                    },
+                    required: ["memePageUrl"],
+                },
+            },
+        ],
     }
 ]
