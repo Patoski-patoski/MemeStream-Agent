@@ -16,7 +16,11 @@ function formatMemeAltText(text: string): string {
 }
 
 export function createFullUrl(href: string | null, baseUrl: string): string {
-    if (!href) throw new Error("Invalid href provided");
+    if (!href) {
+        // Handle null href gracefully, perhaps return an empty string or throw a more specific error
+        console.warn("createFullUrl received null href.");
+        return "";
+    }
 
     return href.startsWith('http')
         ? href
@@ -41,14 +45,14 @@ export const tools = [
     {
         functionDeclarations: [
             {
-                name: "search_meme",
-                description: "Searches for a meme by name and returns the URL",
+                name: "search_meme", // Ensure this matches toolFunctions key
+                description: "Searches for a meme by name and returns its main page URL and a blank template image URL.",
                 parameters: {
                     type: Type.OBJECT,
                     properties: {
                         memeName: {
                             type: Type.STRING,
-                            description: "The name of the meme to search for"
+                            description: "The exact name or a close name of the meme to search for, e.g., 'Distracted Boyfriend' or 'Drake Hotline Bling'."
                         },
                     },
                     required: ["memeName"],
@@ -59,14 +63,14 @@ export const tools = [
     {
         functionDeclarations: [
             {
-                name: "scrape_meme_images",
-                description: "Scrapes images from a meme page",
+                name: "scrape_meme_images", // Ensure this matches toolFunctions key
+                description: "Scrapes example images (usually with text) from a given meme's full page URL.",
                 parameters: {
                     type: Type.OBJECT,
                     properties: {
                         memePageUrl: {
                             type: Type.STRING,
-                            description: "The URL of the meme page to scrape images from"
+                            description: "The full URL of the meme's page from which to scrape images (obtained from search_meme tool)."
                         },
                     },
                     required: ["memePageUrl"],
@@ -74,4 +78,4 @@ export const tools = [
             },
         ],
     }
-]
+];
