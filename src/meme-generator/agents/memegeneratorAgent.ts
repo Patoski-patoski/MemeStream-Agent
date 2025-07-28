@@ -27,8 +27,16 @@ const toolFunctions: Record<string, Function> = {
     scrape_meme_images: scrapeMemeImagesFromPage
 };
 
+interface ResponseHandler {
+    sendUpdate: (message: string) => Promise<void>;
+    sendImages: (images: MemeImageData[]) => Promise<void>;
+}
+
 // Main function to run the agent
-async function runMemeAgent(memeNameInput: string) {
+export async function runMemeAgent(
+    memeNameInput: string,
+    responseHandler?: ResponseHandler
+) {
     let browser: Browser | undefined;
     let page: Page | undefined;
 
@@ -141,7 +149,11 @@ async function runMemeAgent(memeNameInput: string) {
             const originContents: { role: string; parts: ContentPart[] }[] = [
                 {
                     role: "user",
-                    parts: [{ text: "You are a helpful assistant specialized in meme history. When asked about a meme, provide its origin story, how it's typically used, and how it became popular. Keep it concise but informative." }]
+                    parts: [{
+                        text: `You are a helpful assistant specialized in meme history.
+                        When asked about a meme, provide its origin story, how it's typically
+                        used, and how it became popular. Keep it concise but informative.`
+                    }]
                 },
                 {
                     role: "user",
@@ -196,7 +208,14 @@ async function runMemeAgent(memeNameInput: string) {
         // Add a final user prompt to guide the model to summarize and present
         contents.push({
             role: 'user',
-            parts: [{ text: `I have completed searching for the meme and scraping its images. The main meme page URL is ${memeSearchResult.memePageFullUrl}. Please provide a clear and concise summary of the meme, including its main URL, and a well-formatted list of the URLs for the scraped images. Present the images as a bulleted list, with each item showing the 'alt' text and the 'src' URL, e.g., "- Alt Text: [image-url-here.jpg]".` }]
+            parts: [{
+                text: `I have completed searching for the meme and scraping its images. 
+                The blank meme page URL is ${memeSearchResult.memeBlankImgUrl}. 
+                Please provide a clear and concise summary of the meme, including its blank meme URL, 
+                main page URL ${memeSearchResult.memePageFullUrl}, and a well-formatted list of 
+                the URLs for the scraped images. Present the images as a bulleted list, with each item showing
+                the 'alt' text and the 'src' URL, e.g., "- Alt Text: [image-url-here.jpg]".`
+            }]
         });
 
         // Generate the final comprehensive response
@@ -210,13 +229,32 @@ async function runMemeAgent(memeNameInput: string) {
         console.log("\n--- Final AI Response ---");
         console.log(finalResult.text);
 
+        // If we have a response handler, send the updates through it
+        if (responseHandler) {
+            // Send the final summary
+            await responseHandler.sendUpdate(finalResult.text as string);
+
+            // Send the scraped images if available
+            if (scrapedImagesResult?.images?.length > 0) {
+                await responseHandler.sendImages(scrapedImagesResult.images);
+            }
+        }
+
+        return {
+            summary: finalResult.text,
+            images: scrapedImagesResult?.images || [],
+            memePageUrl: memeSearchResult.memePageFullUrl,
+            blankMemeUrl: memeSearchResult.memeBlankImgUrl
+        };
+
     } catch (error) {
         console.error("An error occurred during agent execution:", error);
     } finally {
+        console.log("Reached here!!!!");
         if (page) await page.close();
         if (browser) await browser.close();
     }
 }
 
-const memeToFind = "Distracted Boyfriend";
-runMemeAgent(memeToFind);
+// const memeToFind = "Distracted Boyfriend";
+// runMemeAgent(memeToFind);
