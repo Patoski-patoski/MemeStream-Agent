@@ -38,7 +38,6 @@ export async function runMemeAgent(
 
     try {
         // Get page from the responseHandler if available (passed from main bot)
-        console.log("responseHandler\n\n", responseHandler);
         if (responseHandler && 'page' in responseHandler) {
             page = (responseHandler as any).page;
         } else {
@@ -80,13 +79,13 @@ export async function runMemeAgent(
             resultStep1.candidates
             && resultStep1.candidates[0]
             && resultStep1.candidates[0].content) {
-            
+
             contents.push(
                 resultStep1.candidates[0].content as {
-                    role: string; parts: ContentPart[]; 
-                    
+                    role: string; parts: ContentPart[];
+
                 });
-        
+
         } else {
             throw new Error("Failed to get search instruction from AI model");
         }
@@ -102,7 +101,7 @@ export async function runMemeAgent(
 
         // Execute the search
         console.log(`🌐 Step 2: Executing meme search`);
-        
+
         const memeSearchResult = await toolFunctions[functionCallStep1.name](
             page,
             functionCallStep1.args!.memeName) as MemeSearchResult;
@@ -145,7 +144,7 @@ export async function runMemeAgent(
             resultStep3.candidates
             && resultStep3.candidates[0]
             && resultStep3.candidates[0].content) {
-            
+
             contents.push(
                 resultStep3.candidates[0].content as
                 { role: string; parts: ContentPart[]; }
@@ -209,7 +208,7 @@ export async function runMemeAgent(
 
             const scrapedImages = await toolFunctions.scrape_meme_images(
                 page, memeSearchResult.memePageFullUrl) as MemeImageData[];
-            
+
             console.log(`📸 Found ${scrapedImages.length} images`);
 
             return { images: scrapedImages };
@@ -238,12 +237,14 @@ export async function runMemeAgent(
         contents.push({
             role: 'user',
             parts: [{
-                text: `Please provide a well-formatted summary including:
+                text: `Please provide a Markdown formmated(Telegram bot friendly) summary including:
                 - Main page URL: ${memeSearchResult.memePageFullUrl}
                 - Blank template URL: ${memeSearchResult.memeBlankImgUrl}
                 - Number of scraped images: ${scrapedImagesResult?.images?.length || 0}
                 
-                Format this as a clear, concise summary for the user. Focus on practical information they can use.`
+                Format this as a clear, concise summary for the user. Focus on practical information they can use.
+                A line spaces between each result
+                `
             }]
         });
 
@@ -300,6 +301,32 @@ export async function runMemeAgent(
     }
 }
 
+// Utility function to calculate the Levenshtein distance between two strings
+function levenshteinDistance(str1: string, str2: string): number {
+    const m = str1.length;
+    const n = str2.length;
+    const dp: number[][] = Array(m + 1).fill(0).map(() => Array(n + 1).fill(0));
+
+    for (let i = 0; i <= m; i++) dp[i][0] = i;
+    for (let j = 0; j <= n; j++) dp[0][j] = j;
+
+    for (let i = 1; i <= m; i++) {
+        for (let j = 1; j <= n; j++) {
+            if (str1[i - 1] === str2[j - 1]) {
+                dp[i][j] = dp[i - 1][j - 1];
+            } else {
+                dp[i][j] = 1 + Math.min(
+                    dp[i - 1][j],     // deletion
+                    dp[i][j - 1],     // insertion
+                    dp[i - 1][j - 1]  // substitution
+                );
+            }
+        }
+    }
+
+    return dp[m][n];
+}
+
 // Export additional utility functions for the bot
 export function validateMemeRequest(memeName: string): { isValid: boolean; suggestion?: string } {
     if (!memeName || memeName.trim().length === 0) {
@@ -310,15 +337,31 @@ export function validateMemeRequest(memeName: string): { isValid: boolean; sugge
         return { isValid: false, suggestion: "Meme name is too long. Please use a shorter name." };
     }
 
-    // Check for common misspellings or alternative formats
+    // Normalize input for comparison
     const normalizedName = memeName.toLowerCase().trim();
 
     // Add common meme name suggestions
     const popularMemes = [
         'drake hotline bling', 'distracted boyfriend', 'this is fine', 'wojak', 'pepe',
-        'expanding brain', 'Chill guy', 'woman yelling at cat',
+        'expanding brain', 'chill guy', 'woman yelling at cat',
         'two buttons', 'change my mind', 'surprised pikachu'
     ];
+
+    // Check if the input is very similar to a popular meme name
+    const similarMeme = popularMemes.find(meme => {
+        const normalizedPopular = meme.toLowerCase();
+        // Check if the input is a partial match or very similar
+        return normalizedPopular.includes(normalizedName) ||
+            normalizedName.includes(normalizedPopular) ||
+            levenshteinDistance(normalizedName, normalizedPopular) <= 3;
+    });
+
+    if (similarMeme && normalizedName !== similarMeme.toLowerCase()) {
+        return {
+            isValid: false,
+            suggestion: `Did you mean "${similarMeme}"? Try using the exact meme name for better results.`
+        };
+    }
 
     return { isValid: true };
 }

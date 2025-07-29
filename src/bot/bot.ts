@@ -21,6 +21,7 @@ if (!TELEGRAM_BOT_TOKEN) {
 // ⭐ GLOBAL BROWSER INSTANCE ⭐
 let globalBrowser: Browser | undefined;
 let isBrowserLaunching = false;
+
 // Store active meme contexts (in memory for session)
 const activeMemeContexts = new Map<number, MemeContext>();
 
@@ -286,22 +287,11 @@ bot.onText(/^\/meme (.+)/, async (msg, match) => {
             activeMemeContexts.set(chatId, {
                 memePageUrl: response.memePageUrl,
                 blankTemplateUrl: response.blankMemeUrl,
-                memeName: memeName
+                memeName: memeName,
+                currentPage: 1,  // Start at page 1
+                lastRequestTime: Date.now()
             });
         }
-
-
-        // OPTIONAL: Clean up old contexts periodically (add this somewhere in your code)
-        setInterval(() => {
-            // Keep only the last 100 contexts to prevent memory leaks
-            if (activeMemeContexts.size > 100) {
-                const entries = Array.from(activeMemeContexts.entries());
-                const toDelete = entries.slice(0, entries.length - 100);
-                toDelete.forEach(([chatId]) => activeMemeContexts.delete(chatId));
-                console.log(`Cleaned up ${toDelete.length} old meme contexts`);
-            }
-        }, 300000); // Clean every 5 minutes
-
         // Clear timeouts and intervals
         clearTimeout(patienceTimeout);
         clearInterval(progressInterval);
@@ -338,7 +328,6 @@ bot.onText(/^\/meme (.+)/, async (msg, match) => {
 
 
 // ADD THESE CALLBACK HANDLERS AFTER YOUR EXISTING bot.onText HANDLERS:
-// Handle inline keyboard callbacks
 bot.on('callback_query', async (callbackQuery) => {
     const msg = callbackQuery.message;
     const data = callbackQuery.data;
@@ -350,15 +339,15 @@ bot.on('callback_query', async (callbackQuery) => {
     }
 
     try {
-        // Answer the callback query first (removes loading state)
+        // Answer the callback query first
         await bot.answerCallbackQuery(callbackQuery.id);
 
         if (data.startsWith('blank_template_')) {
             const extractedChatId = parseInt(data.split('_')[2]);
             const context = activeMemeContexts.get(extractedChatId);
-
+            
             if (!context) {
-                await bot.sendMessage(chatId,
+                await bot.sendMessage(chatId, 
                     '❌ *Template not available*\n\n' +
                     'Please search for a meme first using `/meme [name]`',
                     { parse_mode: 'Markdown' }
@@ -366,21 +355,23 @@ bot.on('callback_query', async (callbackQuery) => {
                 return;
             }
 
-            // Send blank template
+            // Update last request time
+            context.lastRequestTime = Date.now();
+
             await bot.sendPhoto(chatId, context.blankTemplateUrl, {
                 caption: `🎨 *Blank Template for "${context.memeName}"*\n\n` +
-                    `📝 Right-click to save this image\n` +
-                    `✨ Add your own text to create a custom meme!\n\n` +
-                    `🔗 Source: ${context.memePageUrl}`,
+                        `📝 Right-click to save this image\n` +
+                        `✨ Add your own text to create a custom meme!\n\n` +
+                        `🔗 Source: ${context.memePageUrl}`,
                 parse_mode: 'Markdown'
             });
 
         } else if (data.startsWith('more_templates_')) {
             const extractedChatId = parseInt(data.split('_')[2]);
             const context = activeMemeContexts.get(extractedChatId);
-
+            
             if (!context) {
-                await bot.sendMessage(chatId,
+                await bot.sendMessage(chatId, 
                     '❌ *Additional templates not available*\n\n' +
                     'Please search for a meme first using `/meme [name]`',
                     { parse_mode: 'Markdown' }
@@ -388,10 +379,24 @@ bot.on('callback_query', async (callbackQuery) => {
                 return;
             }
 
-            // Show loading message
-            const loadingMsg = await bot.sendMessage(chatId,
-                '🔍 *Loading more templates...*\n\n' +
-                '📄 Fetching page 2 of templates...',
+            // ENHANCED: Rate limiting check (prevent spam clicking)
+            const timeSinceLastRequest = Date.now() - context.lastRequestTime;
+            if (timeSinceLastRequest < 3000) { // 3 second cooldown
+                await bot.answerCallbackQuery(callbackQuery.id, { 
+                    text: "Please wait a moment before requesting more templates.",
+                    show_alert: true 
+                });
+                return;
+            }
+
+            // INCREMENT PAGE COUNTER
+            context.currentPage += 1;
+            context.lastRequestTime = Date.now();
+
+            // Show loading message with page info
+            const loadingMsg = await bot.sendMessage(chatId, 
+                `🔍 *Loading templates from page ${context.currentPage}...*\n\n` +
+                `📄 Fetching more examples for "${context.memeName}"...`,
                 { parse_mode: 'Markdown' }
             );
 
@@ -406,112 +411,189 @@ bot.on('callback_query', async (callbackQuery) => {
             let page: Page | undefined;
             try {
                 page = await globalBrowser.newPage();
+                
+                // ENHANCED: Smart URL construction for any page number
+                const nextPageUrl = constructPageUrl(context.memePageUrl, context.currentPage);
 
-                // Construct page 2 URL
-                const page2Url = context.memePageUrl.includes('?')
-                    ? `${context.memePageUrl}&page=2`
-                    : `${context.memePageUrl}?page=2`;
+                console.log(`Scraping page ${context.currentPage} from: ${nextPageUrl}`);
 
-                console.log(`Scraping more templates from: ${page2Url}`);
-
-                // Import the scraping function (adjust import path as needed)
+                // Import the scraping function
                 const { scrapeMemeImagesFromPage } = await import('../meme-generator/tools/meme-generator-tools.js');
+                
+                // Scrape the current page
+                const moreImages = await scrapeMemeImagesFromPage(page, nextPageUrl);
 
-                // Scrape page 2
-                const moreImages = await scrapeMemeImagesFromPage(page, page2Url);
+                // Check if we found any images
+                if (!moreImages || moreImages.length === 0) {
+                    // NO MORE PAGES - Reset to last working page
+                    context.currentPage = Math.max(1, context.currentPage - 1);
+                    
+                    await bot.editMessageText(
+                        `📄 *No more templates found on page ${context.currentPage + 1}*\n\n` +
+                        `🎯 You've reached the end! Currently on page ${context.currentPage}.\n` +
+                        `💡 Use the blank template or search for another meme.`,
+                        { 
+                            chat_id: chatId, 
+                            message_id: loadingMsg.message_id,
+                            parse_mode: 'Markdown'
+                        }
+                    );
+
+                    // Send final keyboard without "View More" option
+                    const finalKeyboard = {
+                        inline_keyboard: [
+                            [
+                                {
+                                    text: '🎨 Get Blank Template',
+                                    callback_data: `blank_template_${chatId}`
+                                }
+                            ],
+                            [
+                                {
+                                    text: '🔄 Search Another Meme',
+                                    callback_data: `new_search_${chatId}`
+                                },
+                                {
+                                    text: '🔙 Back to Page 1',
+                                    callback_data: `reset_pages_${chatId}`
+                                }
+                            ]
+                        ]
+                    };
+
+                    await bot.sendMessage(chatId,
+                        '🏁 *End of templates reached*',
+                        { 
+                            parse_mode: 'Markdown',
+                            reply_markup: finalKeyboard
+                        }
+                    );
+                    return;
+                }
 
                 await bot.editMessageText(
-                    '✅ Found additional templates!',
+                    `✅ Found ${moreImages.length} templates on page ${context.currentPage}!`,
                     { chat_id: chatId, message_id: loadingMsg.message_id }
                 );
 
-                if (moreImages && moreImages.length > 0) {
-                    // Filter and send more images
-                    const relevantImages = moreImages.filter(img => img.src.includes('http'));
+                // Filter and send images
+                const relevantImages = moreImages.filter(img => img.src.includes('http'));
 
-                    if (relevantImages.length > 0) {
-                        await bot.sendMessage(chatId,
-                            `🔍 *Additional Templates - Page 2* (${relevantImages.length} images)\n\n` +
-                            `📸 Here are more examples of "${context.memeName}":`,
-                            { parse_mode: 'Markdown' }
-                        );
-
-                        for (let i = 0; i < relevantImages.length; i++) {
-                            const image = relevantImages[i];
-                            try {
-                                const caption = `🎭 *Page 2 - Example ${i + 1}/${relevantImages.length}*\n\n` +
-                                    `${image.alt.replace(/"/g, '').substring(0, 200)}` +
-                                    (image.alt.length > 200 ? '...' : '');
-
-                                await bot.sendPhoto(chatId, image.src, {
-                                    caption,
-                                    parse_mode: 'Markdown'
-                                });
-
-                                if (i < relevantImages.length - 1) {
-                                    await new Promise(resolve => setTimeout(resolve, 1000));
-                                }
-                            } catch (error) {
-                                console.error(`Error sending additional image ${i + 1}:`, error);
-                            }
-                        }
-
-                        // Add another set of inline keyboards for page 3 if needed
-                        const moreKeyboard = {
-                            inline_keyboard: [
-                                [
-                                    {
-                                        text: '🎨 Get Blank Template',
-                                        callback_data: `blank_template_${chatId}`
-                                    }
-                                ],
-                                [
-                                    {
-                                        text: '🔄 Search Another Meme',
-                                        callback_data: `new_search_${chatId}`
-                                    }
-                                ]
-                            ]
-                        };
-
-                        await bot.sendMessage(chatId,
-                            '📋 *Additional templates loaded!*\n\n' +
-                            '💡 Use any template above or get the blank template to create your own.',
-                            {
-                                parse_mode: 'Markdown',
-                                reply_markup: moreKeyboard
-                            }
-                        );
-                    } else {
-                        await bot.sendMessage(chatId,
-                            '😅 *No additional suitable templates found on page 2*\n\n' +
-                            'But you can still use the blank template from the previous results!',
-                            { parse_mode: 'Markdown' }
-                        );
-                    }
-                } else {
+                if (relevantImages.length > 0) {
                     await bot.sendMessage(chatId,
-                        '📄 *No more templates found on page 2*\n\n' +
-                        'You can use the templates from page 1 or the blank template!',
+                        `🔍 *Page ${context.currentPage} Templates* (${relevantImages.length} images)\n\n` +
+                        `📸 More examples of "${context.memeName}":`,
+                        { parse_mode: 'Markdown' }
+                    );
+
+                    // Send images
+                    for (let i = 0; i < relevantImages.length; i++) {
+                        const image = relevantImages[i];
+                        try {
+                            const caption = `🎭 *Page ${context.currentPage} - Example ${i + 1}/${relevantImages.length}*\n\n` +
+                                `${image.alt.replace(/"/g, '').substring(0, 200)}` +
+                                (image.alt.length > 200 ? '...' : '');
+
+                            await bot.sendPhoto(chatId, image.src, { 
+                                caption,
+                                parse_mode: 'Markdown'
+                            });
+                            
+                            if (i < relevantImages.length - 1) {
+                                await new Promise(resolve => setTimeout(resolve, 1000));
+                            }
+                        } catch (error) {
+                            console.error(`Error sending image ${i + 1} from page ${context.currentPage}:`, error);
+                        }
+                    }
+
+                    // ENHANCED: Smart keyboard with page info
+                    const continueKeyboard = {
+                        inline_keyboard: [
+                            [
+                                {
+                                    text: '🎨 Get Blank Template',
+                                    callback_data: `blank_template_${chatId}`
+                                },
+                                {
+                                    text: `🔍 Page ${context.currentPage + 1} →`,
+                                    callback_data: `more_templates_${chatId}`
+                                }
+                            ],
+                            [
+                                {
+                                    text: '🔄 Search Another Meme',
+                                    callback_data: `new_search_${chatId}`
+                                },
+                                {
+                                    text: '🔙 Back to Page 1',
+                                    callback_data: `reset_pages_${chatId}`
+                                }
+                            ]
+                        ]
+                    };
+
+                    await bot.sendMessage(chatId,
+                        `📋 *Page ${context.currentPage} loaded!*\n\n` +
+                        `📊 Total pages explored: ${context.currentPage}\n` +
+                        `🔍 Click "Page ${context.currentPage + 1} →" for more templates!`,
+                        { 
+                            parse_mode: 'Markdown',
+                            reply_markup: continueKeyboard
+                        }
+                    );
+                } else {
+                    // No relevant images found
+                    context.currentPage = Math.max(1, context.currentPage - 1);
+                    await bot.sendMessage(chatId,
+                        `😅 *No suitable templates on page ${context.currentPage + 1}*\n\n` +
+                        `🎯 Staying on page ${context.currentPage}. Try the blank template!`,
                         { parse_mode: 'Markdown' }
                     );
                 }
 
             } catch (error) {
-                console.error('Error loading more templates:', error);
+                console.error(`Error loading page ${context.currentPage}:`, error);
+                // Revert page counter on error
+                context.currentPage = Math.max(1, context.currentPage - 1);
+                
                 await bot.editMessageText(
-                    '❌ *Error loading additional templates*\n\n' +
-                    'Please try again or use the blank template from previous results.',
-                    { chat_id: chatId, message_id: loadingMsg.message_id }
+                    `❌ *Error loading page ${context.currentPage + 1}*\n\n` +
+                    'Please try again or use previous results.',
+                    { 
+                        chat_id: chatId, 
+                        message_id: loadingMsg.message_id,
+                        parse_mode: 'Markdown'
+                    }
                 );
             } finally {
                 if (page) {
                     await page.close();
-                    console.log(`Closed page for more templates request from chat ID: ${chatId}`);
+                    console.log(`Closed page for page ${context.currentPage} request from chat ID: ${chatId}`);
                 }
             }
 
+        } else if (data.startsWith('reset_pages_')) {
+            // NEW: Reset to page 1 functionality
+            const extractedChatId = parseInt(data.split('_')[2]);
+            const context = activeMemeContexts.get(extractedChatId);
+            
+            if (context) {
+                context.currentPage = 1;
+                context.lastRequestTime = Date.now();
+                
+                await bot.sendMessage(chatId,
+                    `🔙 *Reset to Page 1*\n\n` +
+                    `📄 Page counter reset for "${context.memeName}"\n` +
+                    `🔍 Click "View More Templates" to start exploring again!`,
+                    { parse_mode: 'Markdown' }
+                );
+            }
+
         } else if (data.startsWith('new_search_')) {
+            // Clear context for new search
+            activeMemeContexts.delete(chatId);
+            
             await bot.sendMessage(chatId,
                 '🔍 *Ready for a new search!*\n\n' +
                 '📝 Use `/meme [name]` to search for another meme\n\n' +
@@ -522,12 +604,55 @@ bot.on('callback_query', async (callbackQuery) => {
 
     } catch (error) {
         console.error('Error handling callback query:', error);
-        await bot.answerCallbackQuery(callbackQuery.id, {
+        await bot.answerCallbackQuery(callbackQuery.id, { 
             text: "Something went wrong. Please try again.",
-            show_alert: true
+            show_alert: true 
         });
     }
 });
+
+// UTILITY FUNCTION: Smart URL construction for any page
+function constructPageUrl(baseUrl: string, pageNumber: number): string {
+    try {
+        const url = new URL(baseUrl);
+        url.searchParams.set('page', pageNumber.toString());
+        return url.toString();
+    } catch (error) {
+        // Fallback for malformed URLs
+        const separator = baseUrl.includes('?') ? '&' : '?';
+        return `${baseUrl}${separator}page=${pageNumber}`;
+    }
+}
+
+// ENHANCED CLEANUP: More sophisticated memory management
+setInterval(() => {
+    const now = Date.now();
+    const maxAge = 30 * 60 * 1000; // 30 minutes
+    let cleanedCount = 0;
+
+    for (const [chatId, context] of activeMemeContexts.entries()) {
+        // Remove contexts older than 30 minutes
+        if (now - context.lastRequestTime > maxAge) {
+            activeMemeContexts.delete(chatId);
+            cleanedCount++;
+        }
+    }
+
+    if (cleanedCount > 0) {
+        console.log(`🧹 Cleaned up ${cleanedCount} expired meme contexts (30min+ old)`);
+    }
+
+    // Also limit total size
+    if (activeMemeContexts.size > 200) {
+        const entries = Array.from(activeMemeContexts.entries());
+        // Sort by lastRequestTime and keep the 150 most recent
+        entries.sort((a, b) => b[1].lastRequestTime - a[1].lastRequestTime);
+        
+        const toDelete = entries.slice(150);
+        toDelete.forEach(([chatId]) => activeMemeContexts.delete(chatId));
+        console.log(`🧹 Size limit cleanup: removed ${toDelete.length} oldest contexts`);
+    }
+}, 300000); // Clean every 5 minutes
 
 
 // Enhanced error handling
