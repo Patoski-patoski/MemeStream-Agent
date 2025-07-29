@@ -1,9 +1,8 @@
 // src/meme-generator/types/types.ts
 import { z } from 'zod';
 
-// Updated to allow memeBlankImgUrl to be nullable in schema
 export const MemePageLinkSchema = z.object({
-  memePageFullUrl: z.url(), // Using string().url() for stricter URL validation
+  memePageFullUrl: z.url(),
   memeBlankImgUrl: z.url().nullable().optional(), // Make optional and nullable if it can be missing
 });
 
@@ -25,3 +24,16 @@ export type ContentPart =
 
 export type MemeSearchResult = z.infer<typeof MemePageLinkSchema>;
 export type MemeImageData = z.infer<typeof ScrapedMemeImageSchema>; // Represents a single image
+
+export interface ResponseHandler {
+  sendUpdate: (message: string) => Promise<void>;
+  sendImages: (images: MemeImageData[]) => Promise<void>;
+}
+
+export interface ProgressTracker {
+  chatId: number;
+  messageId: number;
+  currentStep: number;
+  totalSteps: number;
+  startTime: number;
+}
