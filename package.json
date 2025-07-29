@@ -4,7 +4,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev":"rm -rf dist && npx tsc"
+    "dev": "rm -rf dist && npx tsc"
   },
   "keywords": [],
   "author": "",
@@ -13,7 +13,9 @@
   "type": "module",
   "dependencies": {
     "@google/genai": "^1.10.0",
+    "@types/node-telegram-bot-api": "^0.64.9",
     "dotenv": "^17.2.0",
+    "node-telegram-bot-api": "^0.66.0",
     "playwright": "^1.53.2",
     "typescript": "^5.8.3",
     "zod": "^4.0.10"
