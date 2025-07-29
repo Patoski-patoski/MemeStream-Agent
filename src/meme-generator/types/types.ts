@@ -25,6 +25,13 @@ export type ContentPart =
 export type MemeSearchResult = z.infer<typeof MemePageLinkSchema>;
 export type MemeImageData = z.infer<typeof ScrapedMemeImageSchema>; // Represents a single image
 
+export interface MemeContext {
+  memePageUrl: string;
+  blankTemplateUrl: string;
+  memeName: string;
+}
+
+
 export interface ResponseHandler {
   sendUpdate: (message: string) => Promise<void>;
   sendImages: (images: MemeImageData[]) => Promise<void>;
