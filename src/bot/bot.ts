@@ -1,5 +1,7 @@
 // src/telegram-bot/index.ts
 import TelegramBot from 'node-telegram-bot-api';
+import express from 'express';
+import { Request, Response } from 'express';
 import dotenv from 'dotenv';
 import { chromium, Browser, Page } from 'playwright';
 
@@ -12,11 +14,56 @@ import {
 dotenv.config();
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const WEBHOOK_URL = process.env.WEBHOOK_URL; // Your ngrok URL
+const PORT = process.env.PORT || 3000;
+const WEBHOOK_PATH = `/webhook/${TELEGRAM_BOT_TOKEN}`;
 
 if (!TELEGRAM_BOT_TOKEN) {
     console.error('TELEGRAM_BOT_TOKEN is not set in your .env file.');
     process.exit(1);
 }
+
+if (!WEBHOOK_URL) {
+    console.error('WEBHOOK_URL is not set in your .env file. Please set your ngrok URL.');
+    process.exit(1);
+}
+
+// Initialize Express app
+const app = express();
+
+// Middleware for parsing JSON
+app.use(express.json());
+
+app.get('/health', (req: Request, res: Response) => {
+    console.log('Health check requested:', {
+        timestamp: new Date().toISOString(),
+        headers: req.headers
+    });
+    
+    res.json({
+        status: 'OK',
+        timestamp: new Date().toISOString(),
+        browser: globalBrowser ? 'Ready' : 'Not Ready'
+    });
+});
+
+// Root endpoint
+app.get('/', (req: Request, res: Response) => {
+    res.json({
+        message: 'Meme Generator Bot is running!',
+        webhook: 'Active',
+        timestamp: new Date().toISOString()
+    });
+});
+
+// Create bot instance with webhook configuration
+const bot = new TelegramBot(TELEGRAM_BOT_TOKEN, {
+    webHook: {
+        port: Number(PORT),
+        host: '0.0.0.0'  // Important for ngrok/external access
+    }
+});
+
 
 // ⭐ GLOBAL BROWSER INSTANCE ⭐
 let globalBrowser: Browser | undefined;
@@ -44,11 +91,37 @@ async function initializeBrowser() {
         isBrowserLaunching = false;
     }
 }
-initializeBrowser();
 
-const bot = new TelegramBot(TELEGRAM_BOT_TOKEN, { polling: true });
+// Initialize webhook and browser
+async function initializeBot() {
+    try {
+        // Initialize browser first
+        await initializeBrowser();
 
-console.log('Telegram bot started...');
+        // Set webhook
+        const fullWebhookUrl = `${WEBHOOK_URL}${WEBHOOK_PATH}`;
+        console.log(`Setting webhook to: ${fullWebhookUrl}`);
+
+        await bot.setWebHook(fullWebhookUrl, {
+            allowed_updates: ['message', 'callback_query'],
+        });
+
+        console.log('✅ Webhook set successfully!');
+
+        // Verify webhook info
+        const webhookInfo = await bot.getWebHookInfo();
+        console.log('📡 Webhook Info:', {
+            url: webhookInfo.url,
+            pending_update_count: webhookInfo.pending_update_count,
+            last_error_date: webhookInfo.last_error_date,
+            last_error_message: webhookInfo.last_error_message
+        });
+
+    } catch (error) {
+        console.error('❌ Failed to initialize bot:', error);
+        process.exit(1);
+    }
+}
 
 // Enhanced welcome message
 bot.onText(/^\/start$/, (msg) => {
@@ -101,13 +174,12 @@ async function updateProgress(tracker: ProgressTracker, message: string, emoji?:
 bot.onText(/^\/meme (.+)/, async (msg, match) => {
     const chatId = msg.chat.id;
     const memeName = match?.[1];
-    console.log("Memename:", memeName);
 
     if (!memeName) {
         bot.sendMessage(chatId,
             '❌ *Please provide a meme name*\n\n' +
             '📝 Example: `/meme Distracted Boyfriend`\n' +
-            '💡 Try popular memes like: Drake, Wojak, Pepe, etc.',
+            '💡 Try popular memes like: Chill guy, Epic handshake, etc.',
             { parse_mode: 'Markdown' }
         );
         return;
@@ -345,9 +417,9 @@ bot.on('callback_query', async (callbackQuery) => {
         if (data.startsWith('blank_template_')) {
             const extractedChatId = parseInt(data.split('_')[2]);
             const context = activeMemeContexts.get(extractedChatId);
-            
+
             if (!context) {
-                await bot.sendMessage(chatId, 
+                await bot.sendMessage(chatId,
                     '❌ *Template not available*\n\n' +
                     'Please search for a meme first using `/meme [name]`',
                     { parse_mode: 'Markdown' }
@@ -360,18 +432,18 @@ bot.on('callback_query', async (callbackQuery) => {
 
             await bot.sendPhoto(chatId, context.blankTemplateUrl, {
                 caption: `🎨 *Blank Template for "${context.memeName}"*\n\n` +
-                        `📝 Right-click to save this image\n` +
-                        `✨ Add your own text to create a custom meme!\n\n` +
-                        `🔗 Source: ${context.memePageUrl}`,
+                    `📝 Right-click to save this image\n` +
+                    `✨ Add your own text to create a custom meme!\n\n` +
+                    `🔗 Source: ${context.memePageUrl}`,
                 parse_mode: 'Markdown'
             });
 
         } else if (data.startsWith('more_templates_')) {
             const extractedChatId = parseInt(data.split('_')[2]);
             const context = activeMemeContexts.get(extractedChatId);
-            
+
             if (!context) {
-                await bot.sendMessage(chatId, 
+                await bot.sendMessage(chatId,
                     '❌ *Additional templates not available*\n\n' +
                     'Please search for a meme first using `/meme [name]`',
                     { parse_mode: 'Markdown' }
@@ -382,9 +454,9 @@ bot.on('callback_query', async (callbackQuery) => {
             // ENHANCED: Rate limiting check (prevent spam clicking)
             const timeSinceLastRequest = Date.now() - context.lastRequestTime;
             if (timeSinceLastRequest < 3000) { // 3 second cooldown
-                await bot.answerCallbackQuery(callbackQuery.id, { 
+                await bot.answerCallbackQuery(callbackQuery.id, {
                     text: "Please wait a moment before requesting more templates.",
-                    show_alert: true 
+                    show_alert: true
                 });
                 return;
             }
@@ -394,7 +466,7 @@ bot.on('callback_query', async (callbackQuery) => {
             context.lastRequestTime = Date.now();
 
             // Show loading message with page info
-            const loadingMsg = await bot.sendMessage(chatId, 
+            const loadingMsg = await bot.sendMessage(chatId,
                 `🔍 *Loading templates from page ${context.currentPage}...*\n\n` +
                 `📄 Fetching more examples for "${context.memeName}"...`,
                 { parse_mode: 'Markdown' }
@@ -411,7 +483,7 @@ bot.on('callback_query', async (callbackQuery) => {
             let page: Page | undefined;
             try {
                 page = await globalBrowser.newPage();
-                
+
                 // ENHANCED: Smart URL construction for any page number
                 const nextPageUrl = constructPageUrl(context.memePageUrl, context.currentPage);
 
@@ -419,7 +491,7 @@ bot.on('callback_query', async (callbackQuery) => {
 
                 // Import the scraping function
                 const { scrapeMemeImagesFromPage } = await import('../meme-generator/tools/meme-generator-tools.js');
-                
+
                 // Scrape the current page
                 const moreImages = await scrapeMemeImagesFromPage(page, nextPageUrl);
 
@@ -427,13 +499,13 @@ bot.on('callback_query', async (callbackQuery) => {
                 if (!moreImages || moreImages.length === 0) {
                     // NO MORE PAGES - Reset to last working page
                     context.currentPage = Math.max(1, context.currentPage - 1);
-                    
+
                     await bot.editMessageText(
                         `📄 *No more templates found on page ${context.currentPage + 1}*\n\n` +
                         `🎯 You've reached the end! Currently on page ${context.currentPage}.\n` +
                         `💡 Use the blank template or search for another meme.`,
-                        { 
-                            chat_id: chatId, 
+                        {
+                            chat_id: chatId,
                             message_id: loadingMsg.message_id,
                             parse_mode: 'Markdown'
                         }
@@ -463,7 +535,7 @@ bot.on('callback_query', async (callbackQuery) => {
 
                     await bot.sendMessage(chatId,
                         '🏁 *End of templates reached*',
-                        { 
+                        {
                             parse_mode: 'Markdown',
                             reply_markup: finalKeyboard
                         }
@@ -494,11 +566,11 @@ bot.on('callback_query', async (callbackQuery) => {
                                 `${image.alt.replace(/"/g, '').substring(0, 200)}` +
                                 (image.alt.length > 200 ? '...' : '');
 
-                            await bot.sendPhoto(chatId, image.src, { 
+                            await bot.sendPhoto(chatId, image.src, {
                                 caption,
                                 parse_mode: 'Markdown'
                             });
-                            
+
                             if (i < relevantImages.length - 1) {
                                 await new Promise(resolve => setTimeout(resolve, 1000));
                             }
@@ -537,7 +609,7 @@ bot.on('callback_query', async (callbackQuery) => {
                         `📋 *Page ${context.currentPage} loaded!*\n\n` +
                         `📊 Total pages explored: ${context.currentPage}\n` +
                         `🔍 Click "Page ${context.currentPage + 1} →" for more templates!`,
-                        { 
+                        {
                             parse_mode: 'Markdown',
                             reply_markup: continueKeyboard
                         }
@@ -556,12 +628,12 @@ bot.on('callback_query', async (callbackQuery) => {
                 console.error(`Error loading page ${context.currentPage}:`, error);
                 // Revert page counter on error
                 context.currentPage = Math.max(1, context.currentPage - 1);
-                
+
                 await bot.editMessageText(
                     `❌ *Error loading page ${context.currentPage + 1}*\n\n` +
                     'Please try again or use previous results.',
-                    { 
-                        chat_id: chatId, 
+                    {
+                        chat_id: chatId,
                         message_id: loadingMsg.message_id,
                         parse_mode: 'Markdown'
                     }
@@ -577,11 +649,11 @@ bot.on('callback_query', async (callbackQuery) => {
             // NEW: Reset to page 1 functionality
             const extractedChatId = parseInt(data.split('_')[2]);
             const context = activeMemeContexts.get(extractedChatId);
-            
+
             if (context) {
                 context.currentPage = 1;
                 context.lastRequestTime = Date.now();
-                
+
                 await bot.sendMessage(chatId,
                     `🔙 *Reset to Page 1*\n\n` +
                     `📄 Page counter reset for "${context.memeName}"\n` +
@@ -593,20 +665,20 @@ bot.on('callback_query', async (callbackQuery) => {
         } else if (data.startsWith('new_search_')) {
             // Clear context for new search
             activeMemeContexts.delete(chatId);
-            
+
             await bot.sendMessage(chatId,
                 '🔍 *Ready for a new search!*\n\n' +
                 '📝 Use `/meme [name]` to search for another meme\n\n' +
-                '💡 *Popular memes:* Drake, Distracted Boyfriend, This is Fine, Wojak, Pepe, Expanding Brain',
+                '💡 *Popular memes:* Drake hotline blink, Distracted Boyfriend, Chill guy, Two buttons',
                 { parse_mode: 'Markdown' }
             );
         }
 
     } catch (error) {
         console.error('Error handling callback query:', error);
-        await bot.answerCallbackQuery(callbackQuery.id, { 
+        await bot.answerCallbackQuery(callbackQuery.id, {
             text: "Something went wrong. Please try again.",
-            show_alert: true 
+            show_alert: true
         });
     }
 });
@@ -624,14 +696,12 @@ function constructPageUrl(baseUrl: string, pageNumber: number): string {
     }
 }
 
-// ENHANCED CLEANUP: More sophisticated memory management
 setInterval(() => {
     const now = Date.now();
     const maxAge = 30 * 60 * 1000; // 30 minutes
     let cleanedCount = 0;
 
     for (const [chatId, context] of activeMemeContexts.entries()) {
-        // Remove contexts older than 30 minutes
         if (now - context.lastRequestTime > maxAge) {
             activeMemeContexts.delete(chatId);
             cleanedCount++;
@@ -639,47 +709,61 @@ setInterval(() => {
     }
 
     if (cleanedCount > 0) {
-        console.log(`🧹 Cleaned up ${cleanedCount} expired meme contexts (30min+ old)`);
+        console.log(`🧹 Webhook cleanup: removed ${cleanedCount} expired contexts`);
     }
 
-    // Also limit total size
     if (activeMemeContexts.size > 200) {
         const entries = Array.from(activeMemeContexts.entries());
-        // Sort by lastRequestTime and keep the 150 most recent
         entries.sort((a, b) => b[1].lastRequestTime - a[1].lastRequestTime);
-        
+
         const toDelete = entries.slice(150);
         toDelete.forEach(([chatId]) => activeMemeContexts.delete(chatId));
-        console.log(`🧹 Size limit cleanup: removed ${toDelete.length} oldest contexts`);
+        console.log(`🧹 Webhook size cleanup: removed ${toDelete.length} oldest contexts`);
     }
-}, 300000); // Clean every 5 minutes
+}, 300000);
 
 
-// Enhanced error handling
-bot.on('polling_error', (error) => {
-    console.error('Polling error:', error);
-});
+// Start the server
+async function startServer() {
+    try {
+        await initializeBot();
+
+        app.listen(Number(PORT), '0.0.0.0', () => {
+            console.log(`🚀 Webhook server running on port ${PORT}`);
+            console.log(`📡 Webhook URL: ${WEBHOOK_URL}${WEBHOOK_PATH}`);
+            console.log(`🌐 Health check: ${WEBHOOK_URL}/health`);
+            console.log(`🎭 Meme bot ready to receive webhooks!`);
+        });
+    } catch (error) {
+        console.error('❌ Failed to start server:', error);
+        process.exit(1);
+    }
+}
 
 // Graceful shutdown
-process.on('SIGINT', async () => {
-    console.log('Received SIGINT. Shutting down bot and browser...');
-    bot.stopPolling().catch(err => console.error('Error stopping polling:', err));
+async function gracefulShutdown(signal: string) {
+    console.log(`\n📡 Received ${signal}. Shutting down webhook server and browser...`);
+
+    try {
+        // Remove webhook
+        await bot.deleteWebHook();
+        console.log('✅ Webhook removed');
+    } catch (error) {
+        console.error('Error removing webhook:', error);
+    }
 
     if (globalBrowser) {
-        console.log('Closing Playwright browser...');
+        console.log('🌐 Closing Playwright browser...');
         await globalBrowser.close();
-        console.log('Playwright browser closed.');
+        console.log('✅ Playwright browser closed.');
     }
-    process.exit(0);
-});
 
-process.on('SIGTERM', async () => {
-    console.log('Received SIGTERM. Shutting down bot and browser...');
-    bot.stopPolling().catch(err => console.error('Error stopping polling:', err));
-    if (globalBrowser) {
-        console.log('Closing Playwright browser...');
-        await globalBrowser.close();
-        console.log('Playwright browser closed.');
-    }
+    console.log('👋 Webhook server shutdown complete');
     process.exit(0);
-});
+}
+
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+
+// Start the server
+startServer();

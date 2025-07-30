@@ -23,12 +23,13 @@ dotenv.config();
 const modelName = process.env.MODEL_NAME!;
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
+const TAG_MEME = process.env.TAG_MEME!;
+
 const toolFunctions: Record<string, Function> = {
     search_meme: searchMemeAndGetFirstLink,
     scrape_meme_images: scrapeMemeImagesFromPage
 };
 
-// Enhanced main function with better error handling and user feedback
 export async function runMemeAgent(
     memeNameInput: string,
     responseHandler?: ResponseHandler
@@ -205,6 +206,9 @@ export async function runMemeAgent(
         // Execute image scraping
         const scrapedImagesPromise = (async () => {
             console.log(`🖼️ Scraping images from: ${memeSearchResult.memePageFullUrl}`);
+            if (memeSearchResult.memePageFullUrl === TAG_MEME) {
+                throw new Error(`Unable to find the "${memeNameInput}" meme`);
+            }
 
             const scrapedImages = await toolFunctions.scrape_meme_images(
                 page, memeSearchResult.memePageFullUrl) as MemeImageData[];
@@ -228,7 +232,13 @@ export async function runMemeAgent(
         // Add scrape result to conversation
         contents.push({
             role: 'tool',
-            parts: [{ functionResponse: { name: functionCallStep3.name, response: scrapedImagesResult } }]
+            parts: [{
+                functionResponse:
+                {
+                    name: functionCallStep3.name,
+                    response: scrapedImagesResult
+                }
+            }]
         });
 
         // --- Step 5: Generate final comprehensive summary ---
@@ -237,14 +247,29 @@ export async function runMemeAgent(
         contents.push({
             role: 'user',
             parts: [{
-                text: `Please provide a Markdown formmated(Telegram bot friendly) summary including:
-                - Main page URL: ${memeSearchResult.memePageFullUrl}
-                - Blank template URL: ${memeSearchResult.memeBlankImgUrl}
-                - Number of scraped images: ${scrapedImagesResult?.images?.length || 0}
-                
-                Format this as a clear, concise summary for the user. Focus on practical information they can use.
-                A line spaces between each result
-                `
+                text: `Create a Telegram-compatible Markdown summary with the following information:
+
+Format the URLs with proper Markdown escaping and add emojis for visual hierarchy:
+
+🌐 *Source Page:* ${memeSearchResult.memePageFullUrl}
+
+🎨 *Blank Template:* ${memeSearchResult.memeBlankImgUrl}
+
+📸 *Available Examples:* ${scrapedImagesResult?.images?.length || 0} images
+
+Requirements:
+- Use single asterisks for *bold* text
+- Add a blank line between each item
+- Keep URLs unformatted (no Markdown)
+- Use simple formatting to avoid Telegram parsing errors
+- Keep the summary concise and user-friendly
+
+Example format:
+🌐 *Source:* http://example.com
+(blank line)
+🎨 *Template:* http://example.com/template
+(blank line)
+📸 *Images Found:* 5 examples`
             }]
         });
 
