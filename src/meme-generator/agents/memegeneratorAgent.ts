@@ -318,7 +318,7 @@ Example format:
                 `• Try a different meme name\n` +
                 `• Check if the meme name is spelled correctly\n` +
                 `• Use well-known meme names\n\n` +
-                `🔄 Feel free to try again!`
+                `🔄 Feel free to try again!`,
             );
         }
 
@@ -326,77 +326,77 @@ Example format:
     }
 }
 
-// Utility function to calculate the Levenshtein distance between two strings
-function levenshteinDistance(str1: string, str2: string): number {
-    const m = str1.length;
-    const n = str2.length;
-    const dp: number[][] = Array(m + 1).fill(0).map(() => Array(n + 1).fill(0));
+// // Utility function to calculate the Levenshtein distance between two strings
+// function levenshteinDistance(str1: string, str2: string): number {
+//     const m = str1.length;
+//     const n = str2.length;
+//     const dp: number[][] = Array(m + 1).fill(0).map(() => Array(n + 1).fill(0));
 
-    for (let i = 0; i <= m; i++) dp[i][0] = i;
-    for (let j = 0; j <= n; j++) dp[0][j] = j;
+//     for (let i = 0; i <= m; i++) dp[i][0] = i;
+//     for (let j = 0; j <= n; j++) dp[0][j] = j;
 
-    for (let i = 1; i <= m; i++) {
-        for (let j = 1; j <= n; j++) {
-            if (str1[i - 1] === str2[j - 1]) {
-                dp[i][j] = dp[i - 1][j - 1];
-            } else {
-                dp[i][j] = 1 + Math.min(
-                    dp[i - 1][j],     // deletion
-                    dp[i][j - 1],     // insertion
-                    dp[i - 1][j - 1]  // substitution
-                );
-            }
-        }
-    }
+//     for (let i = 1; i <= m; i++) {
+//         for (let j = 1; j <= n; j++) {
+//             if (str1[i - 1] === str2[j - 1]) {
+//                 dp[i][j] = dp[i - 1][j - 1];
+//             } else {
+//                 dp[i][j] = 1 + Math.min(
+//                     dp[i - 1][j],     // deletion
+//                     dp[i][j - 1],     // insertion
+//                     dp[i - 1][j - 1]  // substitution
+//                 );
+//             }
+//         }
+//     }
 
-    return dp[m][n];
-}
+//     return dp[m][n];
+// }
 
-// Export additional utility functions for the bot
-export function validateMemeRequest(memeName: string): { isValid: boolean; suggestion?: string } {
-    if (!memeName || memeName.trim().length === 0) {
-        return { isValid: false, suggestion: "Please provide a meme name" };
-    }
+// // Export additional utility functions for the bot
+// export function validateMemeRequest(memeName: string): { isValid: boolean; suggestion?: string } {
+//     if (!memeName || memeName.trim().length === 0) {
+//         return { isValid: false, suggestion: "Please provide a meme name" };
+//     }
 
-    if (memeName.length > 50) {
-        return { isValid: false, suggestion: "Meme name is too long. Please use a shorter name." };
-    }
+//     if (memeName.length > 50) {
+//         return { isValid: false, suggestion: "Meme name is too long. Please use a shorter name." };
+//     }
 
-    // Normalize input for comparison
-    const normalizedName = memeName.toLowerCase().trim();
+//     // Normalize input for comparison
+//     const normalizedName = memeName.toLowerCase().trim();
 
-    // Add common meme name suggestions
-    const popularMemes = [
-        'drake hotline bling', 'distracted boyfriend', 'this is fine', 'wojak', 'pepe',
-        'expanding brain', 'chill guy', 'woman yelling at cat',
-        'two buttons', 'change my mind', 'surprised pikachu'
-    ];
+//     // Add common meme name suggestions
+//     const popularMemes = [
+//         'drake hotline bling', 'distracted boyfriend', 'this is fine', 'wojak', 'pepe',
+//         'expanding brain', 'chill guy', 'woman yelling at cat',
+//         'two buttons', 'change my mind', 'surprised pikachu'
+//     ];
 
-    // Check if the input is very similar to a popular meme name
-    const similarMeme = popularMemes.find(meme => {
-        const normalizedPopular = meme.toLowerCase();
-        // Check if the input is a partial match or very similar
-        return normalizedPopular.includes(normalizedName) ||
-            normalizedName.includes(normalizedPopular) ||
-            levenshteinDistance(normalizedName, normalizedPopular) <= 3;
-    });
+//     // Check if the input is very similar to a popular meme name
+//     const similarMeme = popularMemes.find(meme => {
+//         const normalizedPopular = meme.toLowerCase();
+//         // Check if the input is a partial match or very similar
+//         return normalizedPopular.includes(normalizedName) ||
+//             normalizedName.includes(normalizedPopular) ||
+//             levenshteinDistance(normalizedName, normalizedPopular) <= 3;
+//     });
 
-    if (similarMeme && normalizedName !== similarMeme.toLowerCase()) {
-        return {
-            isValid: false,
-            suggestion: `Did you mean "${similarMeme}"? Try using the exact meme name for better results.`
-        };
-    }
+//     if (similarMeme && normalizedName !== similarMeme.toLowerCase()) {
+//         return {
+//             isValid: false,
+//             suggestion: `Did you mean "${similarMeme}"? Try using the exact meme name for better results.`
+//         };
+//     }
 
-    return { isValid: true };
-}
+//     return { isValid: true };
+// }
 
-export function formatMemeSearchError(memeName: string, error: Error): string {
-    return `❌ *Search Failed for "${memeName}"*\n\n` +
-        `🔍 Error: ${error.message}\n\n` +
-        `💡 *Try these tips:*\n` +
-        `• Use exact meme names\n` +
-        `• Check spelling\n` +
-        `• Try popular memes like "Drake" or "Distracted Boyfriend"\n\n` +
-        `🔄 Ready to try again when you are!`;
-}
+// export function formatMemeSearchError(memeName: string, error: Error): string {
+//     return `❌ *Search Failed for "${memeName}"*\n\n` +
+//         `🔍 Error: ${error.message}\n\n` +
+//         `💡 *Try these tips:*\n` +
+//         `• Use exact meme names\n` +
+//         `• Check spelling\n` +
+//         `• Try popular memes like "Drake" or "Distracted Boyfriend"\n\n` +
+//         `🔄 Ready to try again when you are!`;
+// }

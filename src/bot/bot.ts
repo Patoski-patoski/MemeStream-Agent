@@ -14,7 +14,7 @@ import {
 dotenv.config();
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const WEBHOOK_URL = process.env.WEBHOOK_URL; // Your ngrok URL
+const WEBHOOK_URL = process.env.WEBHOOK_URL;
 const PORT = process.env.PORT || 3000;
 const WEBHOOK_PATH = `/webhook/${TELEGRAM_BOT_TOKEN}`;
 
