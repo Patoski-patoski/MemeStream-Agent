@@ -4,7 +4,7 @@ services:
     env: node
     plan: free
     buildCommand: npm install && npm run build
-    startCommand: npm run start
+    startCommand: node dist/bot/bot.js
     healthCheckPath: /health
     envVars:
       - key: TELEGRAM_BOT_TOKEN
