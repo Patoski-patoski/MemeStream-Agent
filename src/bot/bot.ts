@@ -1,2 +1,0 @@
-
-import './core/bot.js';
