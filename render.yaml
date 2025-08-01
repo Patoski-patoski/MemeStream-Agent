@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: memestream-agent
+    env: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    healthCheckPath: /health
+    envVars:
+      - key: TELEGRAM_BOT_TOKEN
+        fromSecret: true
+      - key: GEMINI_API_KEY
+        fromSecret: true
+      - key: MODEL_NAME
+        value: gemini-1.5-flash
+      - key: MEME_URL
+        value: https://imgflip.com/search
+      - key: WEBHOOK_URL
+        fromService:
+          type: web
+          name: memestream-agent
+          property: url
+      - key: PORT
+        value: 3000
+      - key: NODE_ENV
+        value: production
