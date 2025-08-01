@@ -2,9 +2,11 @@
   "name": "gemini-ts-app",
   "version": "1.0.0",
   "main": "index.js",
-  "scripts": {
+    "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "rm -rf dist && npx tsc"
+    "dev": "nodemon",
+    "build": "tsc",
+    "start": "node dist/bot/bot.js"
   },
   "keywords": [],
   "author": "",
@@ -24,6 +26,8 @@
   },
   "devDependencies": {
     "@types/express": "^5.0.3",
-    "@types/node": "^24.1.0"
+    "@types/node": "^24.1.0",
+    "nodemon": "^3.1.10",
+    "ts-node": "^10.9.2"
   }
 }
