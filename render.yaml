@@ -12,15 +12,17 @@ services:
       - key: GEMINI_API_KEY
         fromSecret: true
       - key: MODEL_NAME
-        value: gemini-1.5-flash
+        value: gemini-2.0-flash-exp
       - key: MEME_URL
-        value: https://imgflip.com/search
+        fromSecret: true
+      - key: TAG_MEME
+        fromSecret: true
       - key: WEBHOOK_URL
         fromService:
           type: web
           name: memestream-agent
           property: url
       - key: PORT
-        value: 3000
+        fromSecret: true
       - key: NODE_ENV
         value: production
