@@ -12,7 +12,7 @@ services:
       - key: GEMINI_API_KEY
         fromSecret: true
       - key: MODEL_NAME
-        value: gemini-2.0-flash-exp
+        fromSecret: true
       - key: MEME_URL
         fromSecret: true
       - key: TAG_MEME
