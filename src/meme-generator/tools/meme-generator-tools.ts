@@ -31,7 +31,7 @@ export async function searchMemeAndGetFirstLink(page: Page, memeName: string): P
   await page.waitForSelector('.mm-rec-link', { timeout: 30000 });
 
   const firstResultLink = await page.$(".mm-rec-link");
-  if (!firstResultLink) {``
+  if (!firstResultLink) {
     console.error("First meme result link not found.");
     return null;
   }
