@@ -1,6 +1,8 @@
 # MemeStream-Agent
 
-Hey, I built a TypeScript-based application that uses Playwright and Google's Generative AI to search, scrape, and process meme images from the web. It has some cool features like meme search functionality, automatic meme template extraction, and bulk meme image scraping. Plus, it's type-safe with OpenAPI schema validation and integrates with Google's Generative AI.
+Hey I'm Patrick, I built a TypeScript-based application that uses Playwright and Google's Generative AI to search, scrape, and process meme images from the web. It has some cool features like meme search functionality, automatic meme template extraction, and bulk meme image scraping. Plus, it's type-safe with OpenAPI schema validation and integrates with Google's Generative AI.
+
+Patrick is a software engineer who loves to create memes. he has a great sense of humour and enjoys making people laugh. He is also very creative and loves to come up with new ideas for memes. One Saturday evening, Patrick, Osi, James and Buzor are sitting in a cafe discussing their favorite memes. Buzor is a frontend software engineer who loves to create memes. Osi is a data scientist who enjoys analyzing meme trends. James is a graphic designer who loves to create visual content. They are all passionate about memes and enjoy sharing their favorite ones with each other.
 
 This is one of my passion projects, and I hope you find it useful! Passion project is a term used to describe a project that is driven by personal interest and enthusiasm rather than commercial intent. Passion projects brings out the best in an artist or in this case a developer, allowing them to explore their creativity and skills without the constraints of commercial pressures.
 

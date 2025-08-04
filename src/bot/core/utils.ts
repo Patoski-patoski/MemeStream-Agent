@@ -12,6 +12,7 @@ export const progressMessages = [
     "✨ Almost ready! Finalizing results..."
 ];
 
+
 export async function updateProgress(bot: TelegramBot, tracker: ProgressTracker, message: string, emoji?: string) {
     const elapsed = Math.round((Date.now() - tracker.startTime) / 1000);
     const progressBar = "█".repeat(tracker.currentStep) + "░".repeat(tracker.totalSteps - tracker.currentStep);
