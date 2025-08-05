@@ -1,9 +1,9 @@
 // src/meme-generator/agents/memegeneratorAgent.ts
-
 import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
 import { Page } from 'playwright';
 import { ResponseHandler } from "../types/types.js";
+import { getOptimizedPage, closePage, getMemoryUsage } from "../../bot/core/browser.js";
 
 import {
     searchMemeAndGetFirstLink,
@@ -22,7 +22,6 @@ dotenv.config();
 
 const modelName = process.env.MODEL_NAME!;
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-
 const TAG_MEME = process.env.TAG_MEME!;
 
 const toolFunctions: Record<string, Function> = {
@@ -32,39 +31,36 @@ const toolFunctions: Record<string, Function> = {
 
 export async function runMemeAgent(
     memeNameInput: string,
-    responseHandler?: ResponseHandler
+    responseHandler?: ResponseHandler,
+    requestId?: string
 ) {
-    // Used the global browser from the main bot file (instead of creating a new one)
+    const sessionId = requestId || `meme_${Date.now()}`;
     let page: Page | undefined;
 
     try {
-        // Get page from the responseHandler if available (passed from main bot)
-        if (responseHandler && 'page' in responseHandler) {
-            page = (responseHandler as any).page;
-        } else {
-            throw new Error("No page instance available for meme agent");
-        }
-
         console.log(`\n🚀 Starting meme agent for: "${memeNameInput}"`);
+        console.log('💾 Memory before start:', getMemoryUsage());
+
+        // Get optimized page instance
+        page = await getOptimizedPage(sessionId);
+        console.log('📄 Reusing optimized page instance');
 
         // Initial conversation history
         let contents: { role: string, parts: ContentPart[] }[] = [
             {
                 role: "user",
-                parts:
-                    [{
-                        text: `You are a helpful meme generator agent. Your task is to find a meme,
+                parts: [{
+                    text: `You are a helpful meme generator agent. Your task is to find a meme,
                          extract its URL, and scrape its associated images. Present results in a concise,
                          well-formatted summary.`
-                    }]
+                }]
             },
             {
                 role: "user",
-                parts:
-                    [{
-                        text: `Please find the meme named "${memeNameInput}" and show me 
+                parts: [{
+                    text: `Please find the meme named "${memeNameInput}" and show me 
                         its main URL and associated images.`
-                    }]
+                }]
             }
         ];
 
@@ -76,38 +72,32 @@ export async function runMemeAgent(
             config: { tools }
         });
 
-        if (
-            resultStep1.candidates
-            && resultStep1.candidates[0]
-            && resultStep1.candidates[0].content) {
-
-            contents.push(
-                resultStep1.candidates[0].content as {
-                    role: string; parts: ContentPart[];
-
-                });
-
-        } else {
+        if (!resultStep1.candidates?.[0]?.content) {
             throw new Error("Failed to get search instruction from AI model");
         }
+
+        contents.push(resultStep1.candidates[0].content as {
+            role: string; parts: ContentPart[];
+        });
 
         const functionCallStep1 = resultStep1.functionCalls?.[0];
 
         if (!functionCallStep1 || functionCallStep1.name !== "search_meme") {
             throw new Error(
-                `Expected 'search_meme' function call, but got:
-                ${functionCallStep1?.name || 'none'}`
+                `Expected 'search_meme' function call, but got: ${functionCallStep1?.name || 'none'}`
             );
         }
 
         // Execute the search
         console.log(`🌐 Step 2: Executing meme search`);
+        console.log('💾 Memory before search:', getMemoryUsage());
 
         const memeSearchResult = await toolFunctions[functionCallStep1.name](
             page,
-            functionCallStep1.args!.memeName) as MemeSearchResult;
+            functionCallStep1.args!.memeName
+        ) as MemeSearchResult;
 
-        if (!memeSearchResult || !memeSearchResult.memePageFullUrl) {
+        if (!memeSearchResult?.memePageFullUrl) {
             if (responseHandler) {
                 await responseHandler.sendUpdate(
                     `❌ *Could not find meme: "${memeNameInput}"*\n\n` +
@@ -125,8 +115,7 @@ export async function runMemeAgent(
         contents.push({
             role: 'tool',
             parts: [{
-                functionResponse:
-                {
+                functionResponse: {
                     name: functionCallStep1.name,
                     response: memeSearchResult
                 }
@@ -141,31 +130,25 @@ export async function runMemeAgent(
             config: { tools }
         });
 
-        if (
-            resultStep3.candidates
-            && resultStep3.candidates[0]
-            && resultStep3.candidates[0].content) {
-
-            contents.push(
-                resultStep3.candidates[0].content as
-                { role: string; parts: ContentPart[]; }
-            );
-
-        } else {
+        if (!resultStep3.candidates?.[0]?.content) {
             throw new Error("Failed to get scrape instruction from AI model");
         }
+
+        contents.push(resultStep3.candidates[0].content as {
+            role: string; parts: ContentPart[];
+        });
 
         const functionCallStep3 = resultStep3.functionCalls?.[0];
 
         if (!functionCallStep3 || functionCallStep3.name !== "scrape_meme_images") {
             throw new Error(
-                `Expected 'scrape_meme_images' function call,
-                but got: ${functionCallStep3?.name || 'none'}`
+                `Expected 'scrape_meme_images' function call, but got: ${functionCallStep3?.name || 'none'}`
             );
         }
 
-        // --- Step 4: Execute both origin story and image scraping concurrently ---
+        // --- Step 4: Execute operations concurrently ---
         console.log(`📚 Step 4: Getting origin story and scraping images concurrently`);
+        console.log('💾 Memory before concurrent operations:', getMemoryUsage());
 
         // Enhanced origin story prompt
         const originStreamPromise = (async () => {
@@ -211,10 +194,10 @@ export async function runMemeAgent(
             }
 
             const scrapedImages = await toolFunctions.scrape_meme_images(
-                page, memeSearchResult.memePageFullUrl) as MemeImageData[];
+                page, memeSearchResult.memePageFullUrl
+            ) as MemeImageData[];
 
             console.log(`📸 Found ${scrapedImages.length} images`);
-
             return { images: scrapedImages };
         })();
 
@@ -223,6 +206,8 @@ export async function runMemeAgent(
             originStreamPromise,
             scrapedImagesPromise
         ]);
+
+        console.log('💾 Memory after operations:', getMemoryUsage());
 
         // Send origin story to user immediately when it's ready
         if (responseHandler && fullOriginStory) {
@@ -233,8 +218,7 @@ export async function runMemeAgent(
         contents.push({
             role: 'tool',
             parts: [{
-                functionResponse:
-                {
+                functionResponse: {
                     name: functionCallStep3.name,
                     response: scrapedImagesResult
                 }
@@ -309,6 +293,7 @@ Example format:
 
     } catch (error) {
         console.error("❌ Error in meme agent execution:", error);
+        console.log('💾 Memory during error:', getMemoryUsage());
 
         if (responseHandler) {
             await responseHandler.sendUpdate(
@@ -318,85 +303,24 @@ Example format:
                 `• Try a different meme name\n` +
                 `• Check if the meme name is spelled correctly\n` +
                 `• Use well-known meme names\n\n` +
-                `🔄 Feel free to try again!`,
+                `🔄 Feel free to try again!`
             );
         }
 
-        throw error; // Re-throw so the main bot handler can also handle it
+        throw error;
+    } finally {
+        // Clean up: close the page for this session to free memory
+        if (sessionId) {
+            await closePage(sessionId);
+            console.log(`🧹 Cleaned up session: ${sessionId}`);
+        }
+
+        console.log('💾 Memory after cleanup:', getMemoryUsage());
+
+        // Force garbage collection if available
+        if (global.gc) {
+            global.gc();
+            console.log('🗑️ Garbage collection triggered');
+        }
     }
 }
-
-// // Utility function to calculate the Levenshtein distance between two strings
-// function levenshteinDistance(str1: string, str2: string): number {
-//     const m = str1.length;
-//     const n = str2.length;
-//     const dp: number[][] = Array(m + 1).fill(0).map(() => Array(n + 1).fill(0));
-
-//     for (let i = 0; i <= m; i++) dp[i][0] = i;
-//     for (let j = 0; j <= n; j++) dp[0][j] = j;
-
-//     for (let i = 1; i <= m; i++) {
-//         for (let j = 1; j <= n; j++) {
-//             if (str1[i - 1] === str2[j - 1]) {
-//                 dp[i][j] = dp[i - 1][j - 1];
-//             } else {
-//                 dp[i][j] = 1 + Math.min(
-//                     dp[i - 1][j],     // deletion
-//                     dp[i][j - 1],     // insertion
-//                     dp[i - 1][j - 1]  // substitution
-//                 );
-//             }
-//         }
-//     }
-
-//     return dp[m][n];
-// }
-
-// // Export additional utility functions for the bot
-// export function validateMemeRequest(memeName: string): { isValid: boolean; suggestion?: string } {
-//     if (!memeName || memeName.trim().length === 0) {
-//         return { isValid: false, suggestion: "Please provide a meme name" };
-//     }
-
-//     if (memeName.length > 50) {
-//         return { isValid: false, suggestion: "Meme name is too long. Please use a shorter name." };
-//     }
-
-//     // Normalize input for comparison
-//     const normalizedName = memeName.toLowerCase().trim();
-
-//     // Add common meme name suggestions
-//     const popularMemes = [
-//         'drake hotline bling', 'distracted boyfriend', 'this is fine', 'wojak', 'pepe',
-//         'expanding brain', 'chill guy', 'woman yelling at cat',
-//         'two buttons', 'change my mind', 'surprised pikachu'
-//     ];
-
-//     // Check if the input is very similar to a popular meme name
-//     const similarMeme = popularMemes.find(meme => {
-//         const normalizedPopular = meme.toLowerCase();
-//         // Check if the input is a partial match or very similar
-//         return normalizedPopular.includes(normalizedName) ||
-//             normalizedName.includes(normalizedPopular) ||
-//             levenshteinDistance(normalizedName, normalizedPopular) <= 3;
-//     });
-
-//     if (similarMeme && normalizedName !== similarMeme.toLowerCase()) {
-//         return {
-//             isValid: false,
-//             suggestion: `Did you mean "${similarMeme}"? Try using the exact meme name for better results.`
-//         };
-//     }
-
-//     return { isValid: true };
-// }
-
-// export function formatMemeSearchError(memeName: string, error: Error): string {
-//     return `❌ *Search Failed for "${memeName}"*\n\n` +
-//         `🔍 Error: ${error.message}\n\n` +
-//         `💡 *Try these tips:*\n` +
-//         `• Use exact meme names\n` +
-//         `• Check spelling\n` +
-//         `• Try popular memes like "Drake" or "Distracted Boyfriend"\n\n` +
-//         `🔄 Ready to try again when you are!`;
-// }
