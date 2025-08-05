@@ -316,13 +316,11 @@ export const handleHelpCommand = (bot: TelegramBot) => {
 };
 
 export const handleBlankMemeCommand = (bot: TelegramBot) => {
-    bot.onText(/^\/blank (.+)/, async (msg, match) => {
+    bot.onText(/^\/blank( (.+))?/, async (msg, match) => {
         const chatId = msg.chat.id;
         const memeName = match?.[1];
-        console.log("Memename", memeName);
 
         if (!memeName) {
-            console.log("No Memename", memeName);
             bot.sendMessage(chatId,
                 '❌ *Please provide a meme name*\n\n' +
                 '📝 Example: `/blank Distracted Boyfriend`\n' +
@@ -436,13 +434,11 @@ export const handleBlankMemeCommand = (bot: TelegramBot) => {
 };
 
 export const handleMemeCommand = (bot: TelegramBot) => {
-    bot.onText(/^\/meme (.+)/, async (msg, match) => {
+    bot.onText(/^\/meme( (.+))?/, async (msg, match) => {
         const chatId = msg.chat.id;
         const memeName = match?.[1];
-        console.log("Memename", memeName);
 
         if (!memeName) {
-            console.log("No Memename", memeName);
             bot.sendMessage(chatId,
                 '❌ *Please provide a meme name*\n\n' +
                 '📝 Example: `/meme Distracted Boyfriend`\n' +
