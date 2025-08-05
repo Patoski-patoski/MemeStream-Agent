@@ -309,7 +309,7 @@ export const handleHelpCommand = (bot: TelegramBot) => {
             '• Use `/meme` for complete meme information\n' +
             '• Check spelling if meme not found\n' +
             '• Try alternative meme names\n\n' +
-            '🔗 **Need more help?** Contact @your_support_username',
+            '🔗 **Need more help?** Contact @@tnemyojne',
             { parse_mode: 'Markdown' }
         );
     });
