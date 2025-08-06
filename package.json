@@ -1,13 +1,12 @@
 {
   "name": "gemini-ts-app",
   "version": "1.0.0",
-    "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+  "scripts": {
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "dev": "nodemon",
     "build": "tsc",
     "start": "node dist/bot/bot.js",
-    "postinstall": "npx playwright install" 
-  
+    "postinstall": "npx playwright install"
   },
   "keywords": [],
   "author": "",
@@ -27,8 +26,12 @@
   },
   "devDependencies": {
     "@types/express": "^5.0.3",
+    "@types/jest": "^30.0.0",
     "@types/node": "^24.1.0",
+    "eslint": "^9.32.0",
+    "jest": "^30.0.5",
     "nodemon": "^3.1.10",
+    "ts-jest": "^29.4.1",
     "ts-node": "^10.9.2"
   }
 }
