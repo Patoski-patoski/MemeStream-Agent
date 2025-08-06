@@ -210,7 +210,9 @@ const triggerFullMemeSearch = async (bot: TelegramBot, chatId: number, memeName:
                 message_id: tracker.messageId,
                 parse_mode: 'Markdown'
             }
+            
         );
+        return;
     } finally {
         if (page) {
             await page.close();
