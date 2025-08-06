@@ -172,6 +172,11 @@ export async function runMemeAgent(
             const streamResult = await ai.models.generateContentStream({
                 model: modelName,
                 contents: originContents,
+                config: {
+                    temperature: 0.8,
+                    topP: 0.95,
+                    topK: 40,
+                },
             });
 
             console.log("\n📖 Streaming meme origin story...");
