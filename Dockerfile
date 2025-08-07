@@ -18,6 +18,15 @@ RUN apt-get update && apt-get install -y \
     libasound2 \
     && rm -rf /var/lib/apt/lists/*
 
+# Create non-root user for better security
+RUN groupadd -r botuser && useradd -r -g botuser -G audio,video botuser \
+    && mkdir -p /home/botuser/Downloads \
+    && chown -R botuser:botuser /home/botuser \
+    && chown -R botuser:botuser /app
+
+# Switch to non-root user
+USER botuser
+
 # Copy package files first (better caching)
 COPY package*.json tsconfig.json ./
 
@@ -39,14 +48,7 @@ RUN npm prune --production
 # Set memory limit for Node.js (important for containers)
 ENV NODE_OPTIONS="--max-old-space-size=1024"
 
-# Create non-root user for better security
-RUN groupadd -r botuser && useradd -r -g botuser -G audio,video botuser \
-    && mkdir -p /home/botuser/Downloads \
-    && chown -R botuser:botuser /home/botuser \
-    && chown -R botuser:botuser /app
 
-# Switch to non-root user
-USER botuser
 
 # Expose port
 EXPOSE 3300
