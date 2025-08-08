@@ -1,3 +1,4 @@
+// src/bot/core/utils.ts
 
 import { ProgressTracker } from '../../meme-generator/types/types.js';
 import TelegramBot from 'node-telegram-bot-api';
@@ -12,7 +13,14 @@ export const progressMessages = [
     "✨ Almost ready! Finalizing results..."
 ];
 
-
+/**
+ * Updates a Telegram message to display the current progress of a meme search.
+ *
+ * @param bot Telegram bot instance
+ * @param tracker ProgressTracker instance
+ * @param message Text to display alongside the progress bar
+ * @param emoji Optional emoji to prefix the progress bar with
+ */
 export async function updateProgress(bot: TelegramBot, tracker: ProgressTracker, message: string, emoji?: string) {
     const elapsed = Math.round((Date.now() - tracker.startTime) / 1000);
     const progressBar = "█".repeat(tracker.currentStep) + "░".repeat(tracker.totalSteps - tracker.currentStep);
@@ -29,6 +37,18 @@ export async function updateProgress(bot: TelegramBot, tracker: ProgressTracker,
                 parse_mode: 'Markdown'
             }
         );
+
+        // Only set deletion timeout once when we reach the final step
+        if (tracker.currentStep > 1 && tracker.currentStep === tracker.totalSteps) {
+            setTimeout(async () => {
+                try {
+                    await bot.deleteMessage(tracker.chatId, tracker.messageId);
+                } catch (deleteError) {
+                    console.error('Error deleting progress message:', deleteError);
+                }
+            }, 10000);
+        }
+
     } catch (error) {
         console.error('Error updating progress:', error);
     }

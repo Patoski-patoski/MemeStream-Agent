@@ -1,3 +1,4 @@
+// src/bot/core/handlers.ts
 import TelegramBot from 'node-telegram-bot-api';
 import { Page } from 'playwright';
 import { getBrowser } from './browser.js';
@@ -42,7 +43,7 @@ const triggerFullMemeSearch = async (bot: TelegramBot, chatId: number, memeName:
 
     const patienceTimeout = setTimeout(async () => {
         try {
-            await bot.sendMessage(chatId,
+            const patientMessage = await bot.sendMessage(chatId,
                 '🤖 *Hang tight! I\'m working hard on your request* 🤖\n\n' +
                 '🔍 Currently processing:\n' +
                 '• 🎭 Searching meme databases\n' +
@@ -53,10 +54,21 @@ const triggerFullMemeSearch = async (bot: TelegramBot, chatId: number, memeName:
                 '🎯 Your results will be worth the wait!',
                 { parse_mode: 'Markdown' }
             );
+
+            // Schedule the message to be deleted after 45 seconds (changed from 35 seconds)
+            setTimeout(async () => {
+                try {
+                    await bot.deleteMessage(chatId, patientMessage.message_id);
+                } catch (deleteError) {
+                    console.error('Error deleting patience message:', deleteError);
+                }
+            }, 45000); // Changed from 35000 to 45000
+
         } catch (error) {
             console.error('Error sending patience message:', error);
         }
     }, 10000);
+
 
     let page: Page | undefined;
     try {
@@ -480,7 +492,7 @@ export const handleMemeCommand = (bot: TelegramBot) => {
 
         const patienceTimeout = setTimeout(async () => {
             try {
-                await bot.sendMessage(chatId,
+                const patientMessage = await bot.sendMessage(chatId,
                     '🤖 *Hang tight! I\'m working hard on your request* 🤖\n\n' +
                     '🔍 Currently processing:\n' +
                     '• 🎭 Searching meme databases\n' +
@@ -491,11 +503,20 @@ export const handleMemeCommand = (bot: TelegramBot) => {
                     '🎯 Your results will be worth the wait!',
                     { parse_mode: 'Markdown' }
                 );
+
+                // Schedule the message to be deleted after 45 seconds
+                setTimeout(async () => {
+                    try {
+                        await bot.deleteMessage(chatId, patientMessage.message_id);
+                    } catch (deleteError) {
+                        console.error('Error deleting patience message:', deleteError);
+                    }
+                }, 45000);
+
             } catch (error) {
                 console.error('Error sending patience message:', error);
             }
         }, 10000);
-
         let page: Page | undefined;
         try {
             page = await browser.newPage();
@@ -649,6 +670,7 @@ export const handleMemeCommand = (bot: TelegramBot) => {
                     parse_mode: 'Markdown'
                 }
             );
+            return;
         } finally {
             if (page) {
                 await page.close();
