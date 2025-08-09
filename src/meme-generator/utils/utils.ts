@@ -2,7 +2,16 @@
 
 import { Type } from "@google/genai";
 import { Page } from 'playwright';
-import { MemeImageData } from '../types/types.js';
+
+import {
+    ResponseHandler,
+    ContentPart,
+    MemeSearchResult,
+    MemeImageData,
+    
+} from '../types/types.js';
+
+import { RETRY_CONFIG } from "./constants.js";
 
 
 function formatMemeAltText(text: string): string {
@@ -79,3 +88,52 @@ export const tools = [
         ],
     }
 ];
+// Helper function to check if error is retryable
+export function isRetryableError(error: any): boolean {
+    if (!error?.status) return false;
+
+    // Retryable HTTP status codes
+    const retryableStatuses = [429, 503, 500, 502, 504];
+    return retryableStatuses.includes(error.status);
+}
+
+// Helper function for exponential backoff delay
+export function calculateDelay(attempt: number): number {
+    const delay = RETRY_CONFIG.baseDelay * Math.pow(RETRY_CONFIG.backoffMultiplier, attempt - 1);
+    return Math.min(delay, RETRY_CONFIG.maxDelay);
+}
+
+// Fallback function to generate basic meme info without AI
+export function generateFallbackMemeInfo(
+    memeName: string,
+    memeSearchResult: MemeSearchResult,
+    images: MemeImageData[]
+): string {
+    return `🎭 *Meme Information: "${memeName}"*
+
+🌐 *Source Page:* ${memeSearchResult.memePageFullUrl}
+
+🎨 *Blank Template:* ${memeSearchResult.memeBlankImgUrl}
+
+📸 *Available Examples:* ${images?.length || 0} images
+
+ℹ️ *Note:* AI services are currently busy, but we've gathered the essential meme data for you!`;
+}
+
+// Generate fallback origin story
+export function generateFallbackOriginStory(memeName: string): string {
+    return `📚 *Meme Origin: "${memeName}"*
+
+🤖 AI analysis is currently unavailable due to high demand, but here's what we know:
+
+🎭 "${memeName}" is a popular internet meme that has gained significant traction across social media platforms.
+
+🌐 Like many internet memes, it likely originated from social media, forums, or popular culture references and spread through user sharing and remixing.
+
+📈 The meme format allows users to express various emotions, reactions, or situations in a relatable and humorous way.
+
+💡 *Tip:* You can still use the blank template below to create your own version of this meme!
+
+⚡ *AI services will be back online soon for more detailed analysis.*`;
+}
+
