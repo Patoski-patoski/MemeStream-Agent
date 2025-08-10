@@ -7,12 +7,21 @@ import {  MemeImageData, MemeSearchResult } from '../types/types.js';
 import { createFullUrl, extractMemeImageData } from '../utils/utils.js';
 
 dotenv.config();
-const MEME_SEARCH_URL: string = process.env.MEME_URL as string;
 
+const MEME_SEARCH_URL: string = process.env.MEME_URL as string;
 if (!MEME_SEARCH_URL) {
   throw new Error("MEME_URL environment variable is not set.");
 }
 
+
+  /**
+   * Search for a meme with the given name on the configured meme search page
+   * and return the first result's page URL and blank template URL.
+   * @param {Page} page The Playwright page object to use for the search.
+   * @param {string} memeName The name of the meme to search for.
+   * @returns {Promise<MemeSearchResult | null>} A promise resolving to an object
+   * with the meme page URL and blank template URL, or null if the search failed.
+   */
 export async function searchMemeAndGetFirstLink(page: Page, memeName: string): Promise<MemeSearchResult | null> {
   await page.goto(MEME_SEARCH_URL, { waitUntil: 'domcontentloaded', timeout: 30000 });
 
@@ -35,6 +44,7 @@ export async function searchMemeAndGetFirstLink(page: Page, memeName: string): P
     console.error("First meme result link not found.");
     return null;
   }
+  
   const memePageHref = await firstResultLink.getAttribute('href');
   const memePageFullUrl = createFullUrl(memePageHref, MEME_SEARCH_URL);
 
@@ -47,6 +57,14 @@ export async function searchMemeAndGetFirstLink(page: Page, memeName: string): P
   return result;
 }
 
+  /**
+   * Scrape meme images from the given meme page URL.
+   * @param {Page} page The Playwright page object to use for scraping.
+   * @param {string} memePageUrl The URL of the meme page to scrape.
+   * @returns {Promise<MemeImageData[]>} A promise resolving to an array of
+   * MemeImageData objects containing the image URLs and alternative text.
+   * The array is empty if no meme images were found on the page.
+   */
 export async function scrapeMemeImagesFromPage(page: Page, memePageUrl: string): Promise<MemeImageData[]>{
   await page.goto(memePageUrl, { waitUntil: 'domcontentloaded', timeout: 10000 });
   await page.waitForTimeout(2000);

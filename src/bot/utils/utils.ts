@@ -1,6 +1,6 @@
 // src/bot/core/utils.ts
 
-import { ProgressTracker } from '../../types/types.js';
+import { ProgressTracker } from '../types/types.js';
 import TelegramBot from 'node-telegram-bot-api';
 
 export const progressMessages = [
@@ -54,6 +54,14 @@ export async function updateProgress(bot: TelegramBot, tracker: ProgressTracker,
     }
 }
 
+    /**
+     * Construct a URL by appending a page number to the given base URL.
+     * If the base URL is malformed, this function will fall back to appending the page number
+     * as a query parameter (e.g. `baseUrl?page=123`).
+     * @param baseUrl The base URL to append the page number to.
+     * @param pageNumber The page number to append.
+     * @returns The constructed URL.
+     */
 export function constructPageUrl(baseUrl: string, pageNumber: number): string {
     try {
         const url = new URL(baseUrl);
