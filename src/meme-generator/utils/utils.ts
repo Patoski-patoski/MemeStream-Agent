@@ -14,7 +14,7 @@ import {
 import { RETRY_CONFIG } from "./constants.js";
 
 
-function formatMemeAltText(text: string): string {
+export function formatMemeAltText(text: string): string {
     // Split at first '|'
     const [title, rest] = text.split('|').map(s => s.trim());
     if (!rest) return title;

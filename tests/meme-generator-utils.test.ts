@@ -2,7 +2,7 @@
 import { jest } from '@jest/globals';
 import { Page } from 'playwright';
 import { createFullUrl, extractMemeImageData, formatMemeAltText } from '../src/meme-generator/utils/utils';
-import { MemeImageData } from '../../src/meme-generator/types/types';
+import { MemeImageData } from '../src/meme-generator/types/types';
 
 // Mock the Page object from Playwright
 const mockPage = {
@@ -77,7 +77,7 @@ describe('Meme Generator Utils', () => {
                 },
             ];
 
-            mockPage.$eval.mockResolvedValue([
+            mockPage.$$eval.mockResolvedValue([
                 {
                     src: 'https://i.imgflip.com/1.jpg',
                     alt: 'Test Meme 1',

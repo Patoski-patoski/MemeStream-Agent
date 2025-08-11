@@ -1,5 +1,6 @@
 
-import { formatMemeNameForUrl } from '../src/utils/formatters';
+import { formatMemeNameForUrl } from '../src/meme-generator/utils/formatters.js'
+
 
 describe('URL Formatters', () => {
     describe('formatMemeNameForUrl', () => {
