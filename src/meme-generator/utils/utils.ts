@@ -24,6 +24,7 @@ function formatMemeAltText(text: string): string {
     return `${title}-${subtitle}`;
 }
 
+
 export function createFullUrl(href: string | null, baseUrl: string): string {
     if (!href) {
         // Handle null href gracefully, perhaps return an empty string or throw a more specific error
@@ -35,6 +36,7 @@ export function createFullUrl(href: string | null, baseUrl: string): string {
         ? href
         : new URL(href, baseUrl).href;
 }
+
 
 export async function extractMemeImageData(page: Page): Promise<MemeImageData[]> {
     const rawImageData: MemeImageData[] = await page.$$eval('img.base-img', (imgs: Element[]) =>

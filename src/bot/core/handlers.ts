@@ -4,7 +4,7 @@ import { Page } from 'playwright';
 import { getBrowser } from './browser.js';
 import { runMemeAgent } from '../../meme-generator/agents/memegeneratorAgent.js';
 import { searchMemeAndGetFirstLink } from '../../meme-generator/tools/meme-generator-tools.js';
-import { ProgressTracker, MemeContext } from '../types/types.js';
+import { ProgressTracker } from '../types/types.js';
 import {
     progressMessages,
     updateProgress,
@@ -59,14 +59,16 @@ const triggerFullMemeSearch = async (bot: TelegramBot, chatId: number, memeName:
                 { parse_mode: 'Markdown' }
             );
 
-            // Schedule the message to be deleted after 45 seconds (changed from 35 seconds)
+            // Schedule the message to be deleted after 45 seconds
             setTimeout(async () => {
                 try {
-                    await bot.deleteMessage(chatId, patientMessage.message_id);
+                    if (patientMessage) {
+                        await bot.deleteMessage(chatId, patientMessage.message_id);                        
+                    }
                 } catch (deleteError) {
                     console.error('Error deleting patience message:', deleteError);
                 }
-            }, 45000); // Changed from 35000 to 45000
+            }, 45000); 
 
         } catch (error) {
             console.error('Error sending patience message:', error);
@@ -274,7 +276,7 @@ export const setupBotCommands = async (bot: TelegramBot) => {
             scope: { type: 'all_private_chats' }
         });
 
-        // For group chats (if your bot works in groups)
+        // For group chats (if bot should works in groups)
         await bot.setMyCommands(commands, {
             scope: { type: 'all_group_chats' }
         });
@@ -332,11 +334,12 @@ export const handleHelpCommand = (bot: TelegramBot) => {
             '• Use `/meme` for complete meme information\n' +
             '• Check spelling if meme not found\n' +
             '• Try alternative meme names\n\n' +
-            '🔗 **Need more help?** Contact @@tnemyojne',
+            '🔗 **Need more help?** Contact @tnemyojne',
             { parse_mode: 'Markdown' }
         );
     });
 };
+
 
 export const handleBlankMemeCommand = (bot: TelegramBot) => {
     bot.onText(/^\/blank( (.+))?/, async (msg, match) => {
@@ -350,6 +353,44 @@ export const handleBlankMemeCommand = (bot: TelegramBot) => {
                 '💡 Try popular memes like: Chill guy, Epic handshake, Drake hotline bling, etc.',
                 { parse_mode: 'Markdown' }
             );
+            return;
+        }
+        // Create inline keyboard
+        const inlineKeyboard = {
+            inline_keyboard: [
+                [
+                    {
+                        text: '🖼️ View Examples',
+                        callback_data: `view_examples_${chatId}`
+                    },
+                    {
+                        text: '🔍 Full Meme Info',
+                        callback_data: `full_info_${chatId}`
+                    }
+                ],
+                [
+                    {
+                        text: '🔄 Get Another Blank',
+                        callback_data: `new_blank_${chatId}`
+                    }
+                ]
+            ]
+        };
+
+        const cachedUrl = await memeCache.getBlankMeme(memeName);
+
+        if (cachedUrl) {
+            await bot.sendPhoto(chatId, cachedUrl, {
+                caption: `🎨 *Blank Template: "${memeName}"*\n\n` +
+                    `✨ *Create your own version:*\n` +
+                    `🔗 ${MEME_URL}/${formatMemeNameForUrl(memeName)}\n\n` +
+                    `💡 *Tips:*\n` +
+                    `• Right-click the image to save it\n` +
+                    `• Use the link above to add custom text` + 
+                 `• Click buttons below for more options`,
+                parse_mode: 'Markdown',
+                reply_markup: inlineKeyboard
+            });
             return;
         }
 
@@ -389,6 +430,8 @@ export const handleBlankMemeCommand = (bot: TelegramBot) => {
                 return;
             }
 
+            await memeCache.cacheBlankMeme(memeName, memeSearchResult.memeBlankImgUrl);
+
             // Store context for inline keyboard actions
             await memeCache.setUserContext(chatId, {
                 memePageUrl: memeSearchResult.memePageFullUrl,
@@ -401,27 +444,6 @@ export const handleBlankMemeCommand = (bot: TelegramBot) => {
             // Delete the loading message
             await bot.deleteMessage(chatId, loadingMsg.message_id);
 
-            // Create inline keyboard
-            const inlineKeyboard = {
-                inline_keyboard: [
-                    [
-                        {
-                            text: '🖼️ View Examples',
-                            callback_data: `view_examples_${chatId}`
-                        },
-                        {
-                            text: '🔍 Full Meme Info',
-                            callback_data: `full_info_${chatId}`
-                        }
-                    ],
-                    [
-                        {
-                            text: '🔄 Get Another Blank',
-                            callback_data: `new_blank_${chatId}`
-                        }
-                    ]
-                ]
-            };
 
             // Send the blank template with rich caption
             await bot.sendPhoto(chatId, memeSearchResult.memeBlankImgUrl, {

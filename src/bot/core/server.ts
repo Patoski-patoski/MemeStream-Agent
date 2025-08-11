@@ -1,4 +1,4 @@
-
+// src/bot/core/server.ts
 import express from 'express';
 import { Request, Response } from 'express';
 import dotenv from 'dotenv';
@@ -6,8 +6,8 @@ import { getBrowser } from './browser.js';
 
 dotenv.config();
 
-const app = express();
-const PORT = process.env.PORT || 3000;
+export const app = express();
+const PORT = process.env.PORT || 3300;
 
 app.use(express.json());
 

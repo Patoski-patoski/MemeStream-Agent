@@ -9,15 +9,16 @@ import {
     handleMemeCommand,
     handleCallbackQuery,
     setupBotCommands,
-    cleanupContexts
 } from './handlers.js';
 
-dotenv.config();
+import {
+    MAX_RETRIES,
+    MAX_RETRY_DELAY,
+    INITIAL_RETRY_DELAY,
+    TELEGRAM_BOT_TOKEN
+} from '../utils/constants.js';
 
-const MAX_RETRIES = 5;
-const INITIAL_RETRY_DELAY = 1000; // Start with 1 second
-const MAX_RETRY_DELAY = 30000; // Max 30 seconds
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+dotenv.config();
 
 if (!TELEGRAM_BOT_TOKEN) {
     console.error('❌ TELEGRAM_BOT_TOKEN is not set in your .env file.');
@@ -112,8 +113,6 @@ const setupBotHandlers = async () => {
         handleHelpCommand(bot);
 
         // Start cleanup process
-        cleanupContexts();
-
         console.log('✅ Bot handlers configured successfully');
     } catch (error) {
         console.error('❌ Error setting up bot handlers:', error);
@@ -133,10 +132,8 @@ const main = async () => {
             process.exit(1);
         }
 
-        // Set up bot handlers
         await setupBotHandlers();
 
-        // Start the server
         console.log('🌐 Starting server...');
         startServer(bot);
 

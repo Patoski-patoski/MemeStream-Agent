@@ -54,10 +54,11 @@ export interface CachedMemeData {
   summary?: string;
   timestamp: number;
   currentPage: number;
-  lastRequestTime: DateConstructor;
+  lastRequestTime: number;
 }
 
 export interface PopularMemesCache {
   memes: string[];
   timestamp: number;
 }
+

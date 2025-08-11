@@ -6,6 +6,27 @@ let globalContext: BrowserContext | undefined;
 let isBrowserLaunching = false;
 const activePagesMap = new Map<string, Page>();
 
+/**
+ * Initializes a Playwright browser with optimized settings for serverless environments.
+ * It is idempotent and can be called multiple times without launching multiple browsers.
+ * If the browser is already launching or initialized, it returns immediately.
+ *
+ * The browser is launched with the following settings:
+ * - `headless: true` to run without a visible window
+ * - `--no-sandbox` to reduce memory usage
+ * - `--disable-setuid-sandbox` to disable setuid sandboxing
+ * - `--disable-dev-shm-usage` to prevent Playwright from writing temporary files to /dev/shm
+ * - `--disable-accelerated-2d-canvas` to disable hardware-accelerated 2D canvas rendering
+ * - `--no-first-run` to prevent Playwright from running the first-run wizard
+ * - `--no-zygote` to disable the zygote process
+ * - `--disable-gpu` to disable GPU acceleration
+ * - `--memory-pressure-off` to reduce memory pressure warnings
+ * - `--max_old_space_size=1024` to limit the V8 heap to 1024MB
+ *
+ * A persistent context is created with a viewport size of 1280x720.
+ *
+ * @throws If the browser fails to launch
+ */
 export const initializeBrowser = async () => {
     if (globalBrowser || isBrowserLaunching) {
         console.log('Browser already initialized or launching...');
@@ -45,6 +66,19 @@ export const initializeBrowser = async () => {
     }
 };
 
+/**
+ * Gets an optimized Playwright page with memory-saving settings.
+ *
+ * If `requestId` is provided, it will attempt to reuse an existing page with the same ID.
+ * Otherwise, it will create a new page with a default ID of 'default'.
+ *
+ * The page is created with the following settings to reduce memory usage:
+ * - Resource blocking is enabled to block unnecessary resources like images, fonts, and media.
+ * - The page is cleared instead of creating a new one if an existing page with the same ID is found.
+ *
+ * @param {string} [requestId] The ID of the page to reuse or create.
+ * @returns {Promise<Page>} A promise that resolves with an optimized Playwright page.
+ */
 export const getOptimizedPage = async (requestId?: string): Promise<Page> => {
     if (!globalBrowser || !globalContext) {
         await initializeBrowser();
@@ -87,6 +121,13 @@ export const getOptimizedPage = async (requestId?: string): Promise<Page> => {
     return newPage;
 };
 
+/**
+ * Closes an existing page and cleans up associated resources.
+ *
+ * If `requestId` is not provided, it will default to 'default'.
+ *
+ * @param {string} [requestId] The ID of the page to close.
+ */
 export const closePage = async (requestId?: string) => {
     const pageId = requestId || 'default';
     const page = activePagesMap.get(pageId);

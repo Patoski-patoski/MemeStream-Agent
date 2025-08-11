@@ -38,10 +38,18 @@ export interface ResponseHandler {
   sendImages: (images: MemeImageData[]) => Promise<void>;
 }
 
-export interface ProgressTracker {
-  chatId: number;
-  messageId: number;
-  currentStep: number;
-  totalSteps: number;
-  startTime: number;
+export interface CachedMemeData {
+  memePageUrl: string;
+  blankTemplateUrl: string;
+  memeName: string;
+  images: MemeImageData[];
+  originStory?: string;
+  summary?: string;
+  timestamp: number;
+  currentPage: number;
+}
+
+export interface PopularMemesCache {
+  memes: string[];
+  timestamp: number;
 }

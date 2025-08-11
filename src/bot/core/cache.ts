@@ -1,6 +1,5 @@
-// src/bot/core/cache.ts - Redis-Only Implementation
+// src/bot/core/cache.ts
 import { Redis } from 'ioredis';
-// import Redis from 'ioredis'
 
 import {
     MemeContext,
@@ -20,39 +19,22 @@ class MemeCache {
 
     constructor() {
         // Check if we have an Upstash URL (production) or local Redis (development)
-        const redisUrl = process.env.UPSTASH_REDIS_URL || process.env.REDIS_URL;
+        const upstashUrl = process.env.UPSTASH_REDIS_URL;
+        const localRedisUrl = process.env.REDIS_URL;
 
-        if (redisUrl) {
-            // Use Upstash or Redis URL (production/cloud)
-            this.redis = new Redis(redisUrl, {
-                retryStrategy: (times) => {
-                    const delay = Math.min(times * 100, 3000);
-                    console.log(`Redis retry attempt ${times}, waiting ${delay}ms`);
-                    return delay;
-                },
-
-                enableReadyCheck: false,
-                lazyConnect: true,
-                commandTimeout: 10000,
-                maxRetriesPerRequest: 3,
-            });
+        if (upstashUrl) {
+            console.log('🌐 Using Upstash Redis (Production)');
+            this.redis = new Redis(upstashUrl, this.getUpstashConfig());
+        } else if (localRedisUrl) {
+            console.log('🏠 Using Redis URL (Development)');
+            this.redis = new Redis(localRedisUrl, this.getLocalConfig());
         } else {
-            // Fallback to local Redis for development
-            this.redis = new Redis({
-                host: process.env.REDIS_HOST || 'localhost',
-                port: parseInt(process.env.REDIS_PORT || '6379'),
-                password: process.env.REDIS_PASSWORD,
-                retryStrategy: (times) => {
-                    return Math.min(times * 100, 3000);
-                },
-                enableReadyCheck: false,
-                lazyConnect: true,
-                maxRetriesPerRequest: 3,
-            });
+            console.log('💻 Using Local Redis (Development)');
+            this.redis = new Redis(this.getLocalConfig());
         }
 
         this.redis.on('error', (err) => {
-            console.error('❌ Redis connection error:', err.message);
+            console.error('❌ Redis connection error:', err.message.substring(12));
         });
 
         this.redis.on('connect', () => {
@@ -66,6 +48,29 @@ class MemeCache {
         this.redis.on('close', () => {
             console.log('⚠️ Redis connection closed');
         });
+    }
+
+    getUpstashConfig() {
+        return {
+            retryStrategy: (times: number) => Math.min(times * 100, 3000),
+            enableReadyCheck: false,
+            lazyConnect: true,
+            maxRetriesPerRequest: 3,
+            connectTimeout: 10000,
+            lazyConnectTimeout: 10000,
+        };
+    }
+
+    getLocalConfig() {
+        return {
+            host: process.env.REDIS_HOST || 'localhost',
+            port: parseInt(process.env.REDIS_PORT || '6379'),
+            password: process.env.REDIS_PASSWORD,
+            retryStrategy: (times: number) => Math.min(times * 100, 3000),
+            enableReadyCheck: false,
+            lazyConnect: true,
+            maxRetriesPerRequest: 3,
+        };
     }
 
     // === MEME DATA CACHING ===
