@@ -1,5 +1,7 @@
 // src/bot/core/cache.ts - Redis-Only Implementation
 import { Redis } from 'ioredis';
+// import Redis from 'ioredis'
+
 import {
     MemeContext,
     CachedMemeData,
@@ -11,29 +13,58 @@ class MemeCache {
     private readonly CACHE_TTL = 1 * 60 * 60; // 1 hour
     private readonly CONTEXT_TTL = 30 * 60; // 30 minutes for user contexts
     private readonly POPULAR_MEMES_TTL = 2 * 60 * 60; // 2 hours
+    private readonly BLANK_MEMES_TTL =  24 * 60 * 60 // 24 hours
     private readonly MEME_KEY_PREFIX = 'meme:';
     private readonly POPULAR_KEY = 'popular_memes';
     private readonly USER_CONTEXT_PREFIX = 'user_context:';
 
     constructor() {
-        this.redis = new Redis({
-            host: process.env.REDIS_HOST || 'localhost',
-            port: parseInt(process.env.REDIS_PORT || '6379'),
-            // password: process.env.REDIS_PASSWORD,
-            retryStrategy: (times) => {
-                return Math.min(times * 100, 3000);
-            },
-            enableReadyCheck: false,
-            lazyConnect: true,
-            maxRetriesPerRequest: 3,
-        });
+        // Check if we have an Upstash URL (production) or local Redis (development)
+        const redisUrl = process.env.UPSTASH_REDIS_URL || process.env.REDIS_URL;
+
+        if (redisUrl) {
+            // Use Upstash or Redis URL (production/cloud)
+            this.redis = new Redis(redisUrl, {
+                retryStrategy: (times) => {
+                    const delay = Math.min(times * 100, 3000);
+                    console.log(`Redis retry attempt ${times}, waiting ${delay}ms`);
+                    return delay;
+                },
+
+                enableReadyCheck: false,
+                lazyConnect: true,
+                commandTimeout: 10000,
+                maxRetriesPerRequest: 3,
+            });
+        } else {
+            // Fallback to local Redis for development
+            this.redis = new Redis({
+                host: process.env.REDIS_HOST || 'localhost',
+                port: parseInt(process.env.REDIS_PORT || '6379'),
+                password: process.env.REDIS_PASSWORD,
+                retryStrategy: (times) => {
+                    return Math.min(times * 100, 3000);
+                },
+                enableReadyCheck: false,
+                lazyConnect: true,
+                maxRetriesPerRequest: 3,
+            });
+        }
 
         this.redis.on('error', (err) => {
-            console.error('Redis connection error:', err);
+            console.error('❌ Redis connection error:', err.message);
         });
 
         this.redis.on('connect', () => {
             console.log('✅ Redis connected successfully');
+        });
+
+        this.redis.on('ready', () => {
+            console.log('🚀 Redis is ready to receive commands');
+        });
+
+        this.redis.on('close', () => {
+            console.log('⚠️ Redis connection closed');
         });
     }
 
@@ -57,6 +88,17 @@ class MemeCache {
         }
     }
 
+
+/**
+ * Cache a meme's data in Redis with a specific time-to-live (TTL).
+ * 
+ * @param {string} memeName - The name of the meme to cache.
+ * @param {Omit<CachedMemeData, 'timestamp'>} data - The data associated with the meme, excluding the timestamp.
+ * @returns {Promise<void>} - A promise that resolves when the caching operation is complete.
+ * 
+ * Logs a message indicating the meme has been cached with the specified TTL duration.
+ * In case of an error during caching, logs the error.
+ */
     async cacheMeme(memeName: string, data: Omit<CachedMemeData, 'timestamp'>): Promise<void> {
         try {
             const key = this.MEME_KEY_PREFIX + memeName.toLowerCase().trim();
@@ -72,7 +114,55 @@ class MemeCache {
         }
     }
 
-    // === USER CONTEXT MANAGEMENT (Redis-only) ===
+    /**
+     * Cache a blank meme's URL in Redis with a specific time-to-live (TTL).
+     * 
+     * @param {string} memeName - The name of the blank meme to cache.
+     * @param {string} memeUrl - The URL of the blank meme image.
+     * @returns {Promise<void>} - A promise that resolves when the caching operation is complete.
+     * 
+     * Logs a message indicating the blank meme has been cached with the specified TTL duration.
+     * In case of an error during caching, logs the error.
+     */
+    async cacheBlankMeme(memeName: string, memeUrl: string): Promise<void> {
+        try {
+            const key = `blank_meme:${memeName.toLowerCase().trim()}`;
+            await this.redis.setex(key, this.BLANK_MEMES_TTL, memeUrl);
+            console.log(`💾 Cached blank meme "${memeName}" for 24 hours`);
+        } catch (error) {
+            console.error('Error caching blank meme:', error);
+        }
+    }
+
+    /**
+     * Retrieves a blank meme URL from Redis cache.
+     * 
+     * @param {string} memeName - The name of the blank meme to retrieve.
+     * @returns {Promise<string | null>} - A promise resolving to the blank meme URL if found,
+     *   or null if not found. If an error occurs during retrieval, logs the error and returns null.
+     * 
+     * Logs a message indicating cache hit or miss.
+     */
+    async getBlankMeme(memeName: string): Promise<string | null> {
+        try {
+            const key = `blank_meme:${memeName.toLowerCase().trim()}`;
+            const cachedUrl = await this.redis.get(key);
+
+            if (cachedUrl) {
+                console.log(`🎯 Cache HIT for blank meme "${memeName}"`);
+                return cachedUrl;
+            }
+
+            console.log(`⚡ Cache MISS for blank meme "${memeName}"`);
+            return null;
+        } catch (error) {
+            console.error('Error getting blank meme:', error);
+            return null;
+        }
+    }
+
+
+    // === USER CONTEXT MANAGEMENT ===
     async setUserContext(chatId: number, context: MemeContext): Promise<void> {
         try {
             const key = this.USER_CONTEXT_PREFIX + chatId;
@@ -88,6 +178,17 @@ class MemeCache {
         }
     }
 
+    /**
+     * Retrieves a user's context from Redis cache.
+     * 
+     * @param {number} chatId - The chat ID of the user to retrieve context for.
+     * @returns {Promise<MemeContext | null>} - A promise resolving to the user context if found,
+     *   or null if not found. If an error occurs during retrieval, logs the error and returns null.
+     * 
+     * Logs a message indicating cache hit or miss.
+     * 
+     * Also updates the last access time of the user context if found.
+     */
     async getUserContext(chatId: number): Promise<MemeContext | null> {
         try {
             const key = this.USER_CONTEXT_PREFIX + chatId;
@@ -109,6 +210,16 @@ class MemeCache {
             return null;
         }
     }
+
+
+/**
+ * Deletes a user's context from Redis cache.
+ * 
+ * @param {number} chatId - The chat ID of the user whose context should be deleted.
+ * @returns {Promise<void>} - A promise that resolves when the deletion is complete.
+ * 
+ * Logs a message indicating the context has been deleted. If an error occurs during deletion, logs the error.
+ */
 
     async deleteUserContext(chatId: number): Promise<void> {
         try {
@@ -152,6 +263,16 @@ class MemeCache {
         }
     }
 
+    /**
+     * Generates an array of 5 popular meme names using the Google GenAI API.
+     * 
+     * If the AI response is invalid, falls back to a static list of popular memes.
+     * 
+     * @returns {Promise<string[]>} - A promise resolving to an array of 5 popular meme names.
+     * 
+     * Logs a message indicating the AI response is invalid if it fails to generate 5 valid meme names.
+     * Logs a message indicating the fallback list is used if the AI response is invalid.
+     */
     private async generatePopularMemes(): Promise<string[]> {
         try {
             const { GoogleGenAI } = await import('@google/genai');
@@ -267,6 +388,11 @@ Give me 5 different popular memes:`
         }
     }
 
+    /**
+     * Closes the Redis connection and logs a message when successful.
+     *
+     * @returns {Promise<void>} - A promise that resolves when the connection is closed.
+     */
     async disconnect(): Promise<void> {
         await this.redis.quit();
         console.log('🔌 Redis connection closed');

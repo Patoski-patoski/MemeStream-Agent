@@ -1,37 +1,9 @@
 version: '3.8'
 
 services:
-  # Redis service for caching
-  redis:
-    image: redis:7-alpine
-    container_name: meme-bot-redis
-    restart: unless-stopped
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-      - ./redis.conf:/etc/redis/redis.conf:ro
-    command: redis-server /etc/redis/redis.conf
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 3s
-      retries: 5
-      start_period: 30s
-    networks:
-      - meme-bot-network
-    environment:
-      - REDIS_REPLICATION_MODE=master
-    sysctls:
-      - net.core.somaxconn=1024
-
-  # Main Telegram bot application
+  
   meme-bot:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        CACHE_BUST: ${CACHE_BUST:-1}
+    build: .
     container_name: meme-bot-app
     restart: unless-stopped
     ports:
@@ -41,15 +13,10 @@ services:
       - BOT_TOKEN=${BOT_TOKEN}
       - WEBHOOK_URL=${WEBHOOK_URL}
       - PORT=3300
-      
-      # Redis configuration
-      - REDIS_URL=redis://redis:6379
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - REDIS_DB=0
-      
-      # Meme generator configuration
       - MEME_URL=${MEME_URL}
+      
+      # Upstash Redis configuration
+      - UPSTASH_REDIS_URL=${UPSTASH_REDIS_URL}
       
       # Performance settings
       - NODE_ENV=${NODE_ENV:-production}
@@ -59,49 +26,16 @@ services:
       - PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
       - PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=true
     volumes:
-      # Mount for persistent data if needed
-      - bot_data:/app/data
-      # Mount for logs
+      # for any local file storage if needed
       - ./logs:/app/logs
-    depends_on:
-      redis:
-        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3300/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 60s
-    networks:
-      - meme-bot-network
-    # Resource limits
-    deploy:
-      resources:
-        limits:
-          memory: 1.5G
-          cpus: '1.0'
-        reservations:
-          memory: 512M
-          cpus: '0.5'
-    # Security settings
-    security_opt:
-      - no-new-privileges:true
-    # Logging configuration
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
-
-networks:
-  meme-bot-network:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 172.20.0.0/16
-
-volumes:
-  redis_data:
-    driver: local
-  bot_data:
-    driver: local
