@@ -1,6 +1,6 @@
 /** @jest-environment jsdom */
 import { jest } from '@jest/globals';
-
+import { Page } from 'playwright';
 // Create mock functions BEFORE the mock declaration
 const mockCreateFullUrl = jest.fn();
 const mockExtractMemeImageData = jest.fn();
@@ -19,8 +19,9 @@ import {
 
 import {
     MemeImageData,
-    MemeSearchResult
+    MemeSearchResult,
 } from '../src/meme-generator/types/types';
+
 
 // Mock environment variables
 const originalEnv = process.env;
@@ -85,8 +86,7 @@ const mockPage = {
     reload: jest.fn(),
     route: jest.fn(),
     unroute: jest.fn(),
-    $$: jest.fn(),
-    $$$eval: jest.fn(),
+    $eval: jest.fn(),
     $$eval: jest.fn(),
     waitForLoadState: jest.fn(),
     pause: jest.fn(),
@@ -145,7 +145,7 @@ describe('Meme Generator Tools', () => {
                 .mockReturnValueOnce('https://imgflip.com/meme/test-meme')
                 .mockReturnValueOnce('https://imgflip.com/s/meme/test-meme.jpg');
 
-            const result = await searchMemeAndGetFirstLink(mockPage as any, memeName);
+            const result = await searchMemeAndGetFirstLink(mockPage as unknown as Page, memeName);
 
             expect(result).toEqual(expectedResult);
             expect(mockPage.goto).toHaveBeenCalledWith('https://imgflip.com/memegenerator',
@@ -161,7 +161,7 @@ describe('Meme Generator Tools', () => {
 
             mockPage.$.mockReturnValue(null!);
 
-            const result = await searchMemeAndGetFirstLink(mockPage as any, memeName);
+            const result = await searchMemeAndGetFirstLink(mockPage as unknown as Page, memeName);
 
             expect(result).toBeNull();
             expect(mockPage.goto).toHaveBeenCalledWith('https://imgflip.com/memegenerator',
@@ -183,7 +183,7 @@ describe('Meme Generator Tools', () => {
                 return Promise.resolve(null);
             });
 
-            const result = await searchMemeAndGetFirstLink(mockPage, memeName);
+            const result = await searchMemeAndGetFirstLink(mockPage as unknown as Page, memeName);
 
             expect(result).toBeNull();
             expect(mockPage.waitForSelector).toHaveBeenCalledWith('.mm-rec-link', { timeout: 30000 });
@@ -214,7 +214,8 @@ describe('Meme Generator Tools', () => {
             // Mock the extractMemeImageData utility function to return processed data
             mockExtractMemeImageData.mockReturnValue(expectedResult);
 
-            const result = await scrapeMemeImagesFromPage(mockPage, memePageUrl);
+            const result = await scrapeMemeImagesFromPage(mockPage as unknown as Page, memePageUrl);
+
 
             expect(result).toEqual(expectedResult);
             expect(mockPage.goto).toHaveBeenCalledWith(memePageUrl,
@@ -231,7 +232,7 @@ describe('Meme Generator Tools', () => {
             // Mock extractMemeImageData to return empty array
             mockExtractMemeImageData.mockReturnValue([]);
 
-            const result = await scrapeMemeImagesFromPage(mockPage, memePageUrl);
+            const result = await scrapeMemeImagesFromPage(mockPage as unknown as Page, memePageUrl);
 
             expect(result).toEqual([]);
             expect(mockPage.goto).toHaveBeenCalledWith(memePageUrl,
@@ -247,7 +248,7 @@ describe('Meme Generator Tools', () => {
             // Mock extractMemeImageData to return null
             mockExtractMemeImageData.mockReturnValue(null!);
 
-            const result = await scrapeMemeImagesFromPage(mockPage as any, memePageUrl);
+            const result = await scrapeMemeImagesFromPage(mockPage as unknown as Page, memePageUrl);
 
             expect(result).toEqual([]);
         });
@@ -256,9 +257,10 @@ describe('Meme Generator Tools', () => {
             const memePageUrl = 'https://imgflip.com/meme/test-meme';
 
             // Mock page.goto to throw an error
-            mockPage.goto.mockRejectedValue(new Error('Navigation failed'));
+            mockPage.goto.mockRejectedValue(new Error('Navigation failed') as never);
 
-            await expect(scrapeMemeImagesFromPage(mockPage, memePageUrl))
+
+            await expect(scrapeMemeImagesFromPage(mockPage as unknown as Page, memePageUrl))
                 .rejects.toThrow('Navigation failed');
 
             expect(mockPage.goto).toHaveBeenCalledWith(memePageUrl,
@@ -273,10 +275,10 @@ describe('Meme Generator Tools', () => {
             mockPage.$$eval.mockReturnValue([{ src: 'test.jpg', alt: 'test' }]);
 
             // Mock page.evaluate to resolve immediately
-            mockPage.evaluate.mockReturnValue(undefined!);
+            mockPage.evaluate.mockReturnValue(undefined);
             mockExtractMemeImageData.mockReturnValue(mockImageData);
 
-            const result = await scrapeMemeImagesFromPage(mockPage, memePageUrl);
+            const result = await scrapeMemeImagesFromPage(mockPage as unknown as Page, memePageUrl);
 
             expect(result).toEqual(mockImageData);
             expect(mockPage.evaluate).toHaveBeenCalled();

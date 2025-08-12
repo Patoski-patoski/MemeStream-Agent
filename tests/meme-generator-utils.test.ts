@@ -1,13 +1,19 @@
-
 import { jest } from '@jest/globals';
-import { createFullUrl, extractMemeImageData, formatMemeAltText } from '../src/meme-generator/utils/utils';
-import { MemeImageData } from '../src/meme-generator/types/types';
+import { Page } from 'playwright';
+import {
+    createFullUrl,
+    extractMemeImageData,
+    formatMemeAltText
+} from '../src/meme-generator/utils/utils';
 
-// Mock the Page object from Playwright
-const mockPage = {
+import { MemeImageData, MockPage } from '../src/meme-generator/types/types';
+
+// Mock the Page object from Playwright with proper typing
+const mockPage: Partial<MockPage> = {
     $eval: jest.fn(),
     $$eval: jest.fn(),
 };
+
 
 describe('Meme Generator Utils', () => {
     afterEach(() => {
@@ -66,29 +72,62 @@ describe('Meme Generator Utils', () => {
 
     describe('extractMemeImageData', () => {
         it('should return an array of meme image data', async () => {
-            const expectedResult: MemeImageData[] = [
+            const rawImageData = [
                 {
                     src: 'https://i.imgflip.com/1.jpg',
-                    alt: 'Test Meme 1',
+                    alt: 'Test Meme 1 | Original Text',
                 },
                 {
                     src: 'https://i.imgflip.com/2.jpg',
-                    alt: 'Test Meme 2',
+                    alt: 'Test Meme 2 | Original Text',
                 },
             ];
 
-            mockPage.$$eval.mockReturnValue(expectedResult);
+            const expectedResult: MemeImageData[] = [
+                {
+                    src: 'https://i.imgflip.com/1.jpg',
+                    alt: 'Test Meme 1-Original Text',
+                },
+                {
+                    src: 'https://i.imgflip.com/2.jpg',
+                    alt: 'Test Meme 2-Original Text',
+                },
+            ];
 
-            const result = await extractMemeImageData(mockPage);
+            (mockPage.$$eval as jest.Mock).mockReturnValue(rawImageData);
+
+            const result = await extractMemeImageData(mockPage as Page);
             expect(result).toEqual(expectedResult);
             expect(mockPage.$$eval).toHaveBeenCalledWith('img.base-img', expect.any(Function));
         });
 
         it('should return an empty array if no images are found', async () => {
-            mockPage.$$eval.mockReturnValue([]);
+            (mockPage.$$eval as jest.Mock).mockReturnValue([]);
 
-            const result = await extractMemeImageData(mockPage);
+            const result = await extractMemeImageData(mockPage as Page);
             expect(result).toEqual([]);
+            expect(mockPage.$$eval).toHaveBeenCalledWith('img.base-img', expect.any(Function));
+        });
+
+        it('should format alt text correctly using formatMemeAltText', async () => {
+            const rawImageData = [
+                {
+                    src: 'https://i.imgflip.com/test.jpg',
+                    alt: 'Complex Title | Subtitle ; Another Part, Final',
+                },
+            ];
+
+            const expectedResult: MemeImageData[] = [
+                {
+                    src: 'https://i.imgflip.com/test.jpg',
+                    alt: 'Complex Title-Subtitle',
+                },
+            ];
+
+            (mockPage.$$eval as jest.Mock).mockReturnValue(rawImageData);
+
+            const result = await extractMemeImageData(mockPage as Page);
+            expect(result).toEqual(expectedResult);
             expect(mockPage.$$eval).toHaveBeenCalledWith('img.base-img', expect.any(Function));
         });
     });

@@ -1,5 +1,6 @@
 // src/meme-generator/types/types.ts
 import { z } from 'zod';
+import { Page } from 'playwright';
 
 export const MemePageLinkSchema = z.object({
   memePageFullUrl: z.url(),
@@ -18,8 +19,8 @@ export const ScrapedMemeImagesArraySchema = z.array(ScrapedMemeImageSchema);
 
 export type ContentPart =
   | { text: string }
-  | { functionCall: { name: string; args: Record<string, any> } }
-  | { functionResponse: { name: string; response: Record<string, any> } };
+  | { functionCall: { name: string; args: Record<string, string | []> } }
+  | { functionResponse: { name: string; response: Record<string, string | []> } };
 
 
 export type MemeSearchResult = z.infer<typeof MemePageLinkSchema>;
@@ -53,3 +54,8 @@ export interface PopularMemesCache {
   memes: string[];
   timestamp: number;
 }
+
+export type MockPage = Omit<Page, '$eval' | '$$eval'> & {
+  $eval: jest.Mock;
+  $$eval: jest.Mock;
+};

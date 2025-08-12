@@ -4,8 +4,6 @@ import { Type } from "@google/genai";
 import { Page } from 'playwright';
 
 import {
-    ResponseHandler,
-    ContentPart,
     MemeSearchResult,
     MemeImageData,
     
@@ -28,7 +26,6 @@ export function formatMemeAltText(text: string): string {
 export function createFullUrl(href: string | null, baseUrl: string): string {
     if (!href) {
         // Handle null href gracefully, perhaps return an empty string or throw a more specific error
-        console.warn("createFullUrl received null href.");
         return "";
     }
 
@@ -45,6 +42,8 @@ export async function extractMemeImageData(page: Page): Promise<MemeImageData[]>
             src: img.src
         }))
     );
+    console.log('rawImageData in extractMemeImageData:', rawImageData); // Debugging line
+    
 
     return rawImageData.map(data => ({
         ...data,
@@ -91,12 +90,12 @@ export const tools = [
     }
 ];
 // Helper function to check if error is retryable
-export function isRetryableError(error: any): boolean {
-    if (!error?.status) return false;
+export function isRetryableError(error: Error): boolean {
+    if (!error?.cause) return false;
 
     // Retryable HTTP status codes
     const retryableStatuses = [429, 503, 500, 502, 504];
-    return retryableStatuses.includes(error.status);
+    return error.message.includes(retryableStatuses.toString());
 }
 
 // Helper function for exponential backoff delay
