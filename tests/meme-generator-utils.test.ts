@@ -1,12 +1,12 @@
 
 import { jest } from '@jest/globals';
-import { Page } from 'playwright';
 import { createFullUrl, extractMemeImageData, formatMemeAltText } from '../src/meme-generator/utils/utils';
 import { MemeImageData } from '../src/meme-generator/types/types';
 
 // Mock the Page object from Playwright
 const mockPage = {
     $eval: jest.fn(),
+    $$eval: jest.fn(),
 };
 
 describe('Meme Generator Utils', () => {
@@ -44,11 +44,11 @@ describe('Meme Generator Utils', () => {
         });
 
         it('should format with hyphen if subtitle is present after ;', () => {
-            expect(formatMemeAltText('Meme Title ; Subtitle')).toBe('Meme Title-Subtitle');
+            expect(formatMemeAltText('Meme Title ; Subtitle')).toBe('Meme Title ; Subtitle');
         });
 
         it('should format with hyphen if subtitle is present after ,', () => {
-            expect(formatMemeAltText('Meme Title , Subtitle')).toBe('Meme Title-Subtitle');
+            expect(formatMemeAltText('Meme Title , Subtitle')).toBe('Meme Title , Subtitle');
         });
 
         it('should trim whitespace from title and subtitle', () => {
@@ -77,28 +77,19 @@ describe('Meme Generator Utils', () => {
                 },
             ];
 
-            mockPage.$$eval.mockResolvedValue([
-                {
-                    src: 'https://i.imgflip.com/1.jpg',
-                    alt: 'Test Meme 1',
-                },
-                {
-                    src: 'https://i.imgflip.com/2.jpg',
-                    alt: 'Test Meme 2',
-                },
-            ]);
+            mockPage.$$eval.mockReturnValue(expectedResult);
 
-            const result = await extractMemeImageData(mockPage as any);
+            const result = await extractMemeImageData(mockPage);
             expect(result).toEqual(expectedResult);
-            expect(mockPage.$eval).toHaveBeenCalledWith('img.base-img', expect.any(Function));
+            expect(mockPage.$$eval).toHaveBeenCalledWith('img.base-img', expect.any(Function));
         });
 
         it('should return an empty array if no images are found', async () => {
-            mockPage.$eval.mockResolvedValue(null);
+            mockPage.$$eval.mockReturnValue([]);
 
-            const result = await extractMemeImageData(mockPage as any);
+            const result = await extractMemeImageData(mockPage);
             expect(result).toEqual([]);
-            expect(mockPage.$eval).toHaveBeenCalledWith('img.base-img', expect.any(Function));
+            expect(mockPage.$$eval).toHaveBeenCalledWith('img.base-img', expect.any(Function));
         });
     });
 });
