@@ -4,14 +4,15 @@ import { Redis } from 'ioredis';
 import {
     MemeContext,
     CachedMemeData,
-    PopularMemesCache
+    PopularMemesCache,
+    CacheStats
 } from '../types/types.js';
 
 class MemeCache {
     private redis: Redis;
     private readonly CACHE_TTL = 1 * 60 * 60; // 1 hour
     private readonly CONTEXT_TTL = 30 * 60; // 30 minutes for user contexts
-    private readonly POPULAR_MEMES_TTL = 2 * 60 * 60; // 2 hours
+    private readonly POPULAR_MEMES_TTL = 1 * 60 * 60; // 1 hours
     private readonly BLANK_MEMES_TTL =  24 * 60 * 60 // 24 hours
     private readonly MEME_KEY_PREFIX = 'meme:';
     private readonly POPULAR_KEY = 'popular_memes';
@@ -344,7 +345,8 @@ Give me 5 different popular memes:`
     }
 
     // === STATISTICS ===
-    async getCacheStats(): Promise<{ redis: any, contexts: any }> {
+    
+    async getCacheStats(): Promise<CacheStats> {
         try {
             const redisInfo = await this.redis.info('memory');
 

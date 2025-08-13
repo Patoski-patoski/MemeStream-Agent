@@ -3,6 +3,7 @@ import express, { Request, Response } from 'express';
 import dotenv from 'dotenv';
 import { getBrowser } from './browser.js';
 import http from 'http';
+import TelegramBot from 'node-telegram-bot-api';
 
 dotenv.config();
 
@@ -39,7 +40,7 @@ app.get('/', (req: Request, res: Response) => {
  * @param {object} bot - A Telegram Bot instance with a processUpdate method.
  * @returns {http.Server} The Express.js server instance.
  */
-export const startServer = (bot: any) => {
+export const startServer = (bot: TelegramBot) => {
     const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
     const WEBHOOK_URL = process.env.RENDER_EXTERNAL_URL || process.env.WEBHOOK_URL;
     const WEBHOOK_PATH = `/webhook/${TELEGRAM_BOT_TOKEN}`;

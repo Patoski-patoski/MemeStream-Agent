@@ -8,7 +8,7 @@ import {
     handleMemeCommand,
     handleCallbackQuery
 } from '../src/bot/core/handlers';
-import { getBrowser } from '../src/bot/core/browser';
+
 import { memeCache } from '../src/bot/core/cache';
 
 jest.mock('../src/bot/core/browser');
@@ -85,7 +85,7 @@ describe('Bot Handlers', () => {
 
         it('should ask for a meme name if none is provided', async () => {
             handleBlankMemeCommand(mockBot);
-            const callback = (mockBot.onText as jest.Mock).mock.calls[0][1] as (msg: Telegram.Message, args: string[]) => void;
+            const callback = (mockBot.onText as jest.Mock).mock.calls[0][1] as (msg: TelegramBot.Message, args: string[]) => void;
 
             const msg = { chat: { id: 123 } } as TelegramBot.Message;
             await callback(msg, ['/blank', undefined!]);
@@ -101,7 +101,7 @@ describe('Bot Handlers', () => {
 
         it('should ask for a meme name if none is provided', async () => {
             handleMemeCommand(mockBot);
-            const callback = (mockBot.onText as jest.Mock).mock.calls[0][1] as (msg: Telegram.Message, args: string[]) => void;
+            const callback = (mockBot.onText as jest.Mock).mock.calls[0][1] as (msg: TelegramBot.Message, args: string[]) => void;
 
             const msg = { chat: { id: 123 } } as TelegramBot.Message;
             callback(msg, ['/meme', undefined!]);
@@ -119,9 +119,8 @@ describe('Bot Handlers', () => {
             (memeCache.getUserContext as jest.Mock).mockResolvedValueOnce(
                 {
                     memeName: 'test',
-                    memePageUrl: 'http://test.com',   
-                }
-            );
+                    memePageUrl: 'http://test.com'
+                } as never);
 
             handleCallbackQuery(mockBot);
             const callback = (mockBot.on as jest.Mock).mock.calls[0][1] as (query: TelegramBot.CallbackQuery) => void;

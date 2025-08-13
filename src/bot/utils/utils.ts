@@ -69,6 +69,7 @@ export function constructPageUrl(baseUrl: string, pageNumber: number): string {
         return url.toString();
     } catch (error) {
         // Fallback for malformed URLs
+        console.log(error)
         const separator = baseUrl.includes('?') ? '&' : '?';
         return `${baseUrl}${separator}page=${pageNumber}`;
     }

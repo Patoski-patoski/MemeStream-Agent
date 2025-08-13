@@ -5,6 +5,7 @@
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --verbose",
     "dev": "nodemon",
     "build": "tsc",
+    "lint": "eslint './src/**/*.ts' './tests/**/*.ts' --fix -f stylish",
     "start": "node dist/bot/bot.js",
     "postinstall": "npx playwright install"
   },

@@ -3,76 +3,118 @@
 import dotenv from "dotenv";
 import { Page } from 'playwright';
 
-import {  MemeImageData, MemeSearchResult } from '../types/types.js';
+import { MemeImageData, MemeSearchResult } from '../types/types.js';
 import { createFullUrl, extractMemeImageData } from '../utils/utils.js';
+import { TIMEOUTS, SELECTORS } from "../utils/constants.js";
 
 dotenv.config();
 
+// Configuration constants
 const MEME_SEARCH_URL: string = process.env.MEME_URL as string;
+
+
+// Validation
 if (!MEME_SEARCH_URL) {
   throw new Error("MEME_URL environment variable is not set.");
 }
 
+/**
+ * Custom error for meme generation operations
+ */
+class MemeGeneratorError extends Error {
+  constructor(message: string, public readonly operation: string) {
+    super(message);
+    this.name = 'MemeGeneratorError';
+  }
+}
 
-  /**
-   * Search for a meme with the given name on the configured meme search page
-   * and return the first result's page URL and blank template URL.
-   * @param {Page} page The Playwright page object to use for the search.
-   * @param {string} memeName The name of the meme to search for.
-   * @returns {Promise<MemeSearchResult | null>} A promise resolving to an object
-   * with the meme page URL and blank template URL, or null if the search failed.
-   */
-export async function searchMemeAndGetFirstLink(page: Page, memeName: string): Promise<MemeSearchResult | null> {
-  await page.goto(MEME_SEARCH_URL, { waitUntil: 'domcontentloaded', timeout: 30000 });
-
-  const searchInput = await page.$('#mm-search');
+/**
+ * Performs a search operation with retry logic
+ */
+async function performSearch(page: Page, memeName: string): Promise<void> {
+  const searchInput = await page.$(SELECTORS.SEARCH_INPUT);
   if (!searchInput) {
-    console.log("Search input #mm-search not found after loading.");
-    return null;
+    throw new MemeGeneratorError("Search input not found on page", "search");
   }
 
   await searchInput.fill(memeName);
-  await page.waitForTimeout(2000);
-  await searchInput.press('Enter');
-  await searchInput.press('Enter');
-  await page.waitForTimeout(2000);
+  await page.waitForTimeout(TIMEOUTS.SEARCH_WAIT);
 
-  await page.waitForSelector('.mm-rec-link', { timeout: 30000 });
+  // Single Enter press should be sufficient
+  await searchInput.press('Enter');
+  await page.waitForTimeout(TIMEOUTS.SEARCH_WAIT);
+}
 
-  const firstResultLink = await page.$(".mm-rec-link");
+/**
+ * Extracts meme data from search results
+ */
+async function extractMemeData(page: Page): Promise<MemeSearchResult> {
+  await page.waitForSelector(SELECTORS.FIRST_RESULT, {
+    timeout: TIMEOUTS.ELEMENT_WAIT
+  });
+
+  const firstResultLink = await page.$(SELECTORS.FIRST_RESULT);
   if (!firstResultLink) {
-    console.error("First meme result link not found.");
-    return null;
+    throw new MemeGeneratorError("No search results found", "extract");
   }
-  
+
   const memePageHref = await firstResultLink.getAttribute('href');
   const memePageFullUrl = createFullUrl(memePageHref, MEME_SEARCH_URL);
 
-  const memePreviewImg = await page.$(".mm-img.shadow");
+  // Get preview image with better error handling
+  const memePreviewImg = await page.$(SELECTORS.PREVIEW_IMAGE);
+  const memePreviewSrc = memePreviewImg
+    ? await memePreviewImg.getAttribute('src')
+    : null;
 
-  const memePreviewSrc = memePreviewImg ? await memePreviewImg.getAttribute('src') : null;
   const memeBlankImgUrl = createFullUrl(memePreviewSrc, MEME_SEARCH_URL);
 
-  const result = { memePageFullUrl, memeBlankImgUrl };
-  return result;
+  return { memePageFullUrl, memeBlankImgUrl };
 }
 
-  /**
-   * Scrape meme images from the given meme page URL.
-   * @param {Page} page The Playwright page object to use for scraping.
-   * @param {string} memePageUrl The URL of the meme page to scrape.
-   * @returns {Promise<MemeImageData[]>} A promise resolving to an array of
-   * MemeImageData objects containing the image URLs and alternative text.
-   * The array is empty if no meme images were found on the page.
-   */
-export async function scrapeMemeImagesFromPage(page: Page, memePageUrl: string): Promise<MemeImageData[]>{
-  await page.goto(memePageUrl, { waitUntil: 'domcontentloaded', timeout: 10000 });
-  await page.waitForTimeout(2000);
+/**
+ * Search for a meme with the given name and return the first result's data.
+ * @param page The Playwright page object to use for the search.
+ * @param memeName The name of the meme to search for.
+ * @returns A promise resolving to meme search result data or null if search failed.
+ */
+export async function searchMemeAndGetFirstLink(
+  page: Page,
+  memeName: string
+): Promise<MemeSearchResult | null> {
+  try {
+    // Navigate to search page
+    await page.goto(MEME_SEARCH_URL, {
+      waitUntil: 'domcontentloaded',
+      timeout: TIMEOUTS.PAGE_LOAD
+    });
 
+    // Perform search
+    await performSearch(page, memeName);
+
+    // Extract and return data
+    return await extractMemeData(page);
+
+  } catch (error) {
+    if (error instanceof MemeGeneratorError) {
+      console.error(`Meme search failed (${error.operation}): ${error.message}`);
+    } else {
+      console.error("Unexpected error during meme search:", error);
+    }
+    return null;
+  }
+}
+
+/**
+ * Optimized page scrolling with better performance
+ */
+async function scrollToLoadContent(page: Page): Promise<void> {
   await page.evaluate(async () => {
-    await new Promise<void>((resolve) => {
+    return new Promise<void>((resolve) => {
       let totalHeight = 0;
-      const distance = 500;
+      const distance = 500; // Smaller distance for smoother scrolling
+      const scrollDelay = 200; // Reduced delay
+
       const timer = setInterval(() => {
         window.scrollBy(0, distance);
         totalHeight += distance;
@@ -80,16 +122,71 @@ export async function scrapeMemeImagesFromPage(page: Page, memePageUrl: string):
           clearInterval(timer);
           resolve();
         }
-      }, 300);
+      }, scrollDelay);
     });
   });
-  await page.waitForTimeout(1000);
+}
 
-  const memeImages = await extractMemeImageData(page);
-  if (!memeImages || memeImages.length === 0) {
-    console.error("No meme images found on the page.");
+/**
+ * Scrape meme images from the given meme page URL with improved error handling.
+ * @param page The Playwright page object to use for scraping.
+ * @param memePageUrl The URL of the meme page to scrape.
+ * @returns A promise resolving to an array of MemeImageData objects.
+ */
+export async function scrapeMemeImagesFromPage(
+  page: Page,
+  memePageUrl: string
+): Promise<MemeImageData[]> {
+  try {
+    // Navigate to meme page
+    await page.goto(memePageUrl, {
+      waitUntil: 'domcontentloaded',
+      timeout: TIMEOUTS.ELEMENT_WAIT
+    });
+
+    // Brief wait for initial content
+    await page.waitForTimeout(1000);
+
+    // Scroll to load all images
+    await scrollToLoadContent(page);
+
+    // Final wait for images to load
+    await page.waitForTimeout(500);
+
+    // Extract meme image data
+    const memeImages = await extractMemeImageData(page);
+
+    if (!memeImages?.length) {
+      console.warn(`No meme images found on page: ${memePageUrl}`);
+      return [];
+    }
+
+    console.log(`Successfully scraped ${memeImages.length} meme images`);
+    return memeImages;
+
+  } catch (error) {
+    console.error(`Failed to scrape memes from ${memePageUrl}:`, error);
+    return [];
+  }
+}
+
+/**
+ * Complete meme generation workflow: search and scrape
+ * @param page The Playwright page object
+ * @param memeName The name of the meme to search for
+ * @returns Promise resolving to array of meme image data
+ */
+export async function generateMemeData(
+  page: Page,
+  memeName: string
+): Promise<MemeImageData[]> {
+  // Search for meme
+  const searchResult = await searchMemeAndGetFirstLink(page, memeName);
+  if (!searchResult) {
+    console.error(`Failed to find meme: ${memeName}`);
     return [];
   }
 
-  return memeImages;
+  // Scrape meme images
+  return await scrapeMemeImagesFromPage(page, searchResult.memePageFullUrl);
 }

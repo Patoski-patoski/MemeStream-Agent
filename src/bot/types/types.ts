@@ -24,8 +24,8 @@ export interface MemeContext {
   memePageUrl: string;
   blankTemplateUrl: string;
   memeName: string;
-  currentPage: number;        // Tracks current page per chat
-  lastRequestTime: number;    // For rate limiting & cleanup
+  currentPage?: number;        // Tracks current page per chat
+  lastRequestTime?: number;    // For rate limiting & cleanup
 }
 
 
@@ -62,3 +62,14 @@ export interface PopularMemesCache {
   timestamp: number;
 }
 
+export interface CacheStats {
+  redis: {
+    connected: boolean;
+    memory?: string;
+    error?: string;
+  };
+  contexts: {
+    activeContexts: number;
+    memoryUsage: NodeJS.MemoryUsage;
+  };
+}

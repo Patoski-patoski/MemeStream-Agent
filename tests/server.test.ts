@@ -11,7 +11,8 @@ jest.mock('../src/bot/core/browser', () => {
     };
 });
 
-import { getBrowser } from '../src/bot/core/browser';
+// import { getBrowser } from '../src/bot/core/browser';
+import TelegramBot from 'node-telegram-bot-api';
 
 
 describe('Server', () => {
@@ -42,7 +43,7 @@ describe('Server', () => {
         });
 
         it('should return 200 OK and browser not ready status', async () => {
-            (getBrowser as jest.Mock).mockResolvedValue;
+            // (getBrowser as jest.Mock).mockResolvedValue();
             const response = await request(app).get('/health');
             expect(response.status).toBe(200);
             expect(response.body).toEqual({
@@ -79,12 +80,12 @@ describe('Server', () => {
 
         it('should start the server and setup webhook', (done) => {
             const bot = {
-                processUpdate: jest.fn()
+                processUpdate: jest.fn() 
             };
             process.env.TELEGRAM_BOT_TOKEN = 'test-token';
             process.env.WEBHOOK_URL = 'http://test.com';
 
-            const server = startServer(bot);
+            const server = startServer(bot as unknown as TelegramBot);
             server.on('listening', () => {
                 const address = server.address();
                 if (typeof address === 'object' && address !== null) {
@@ -95,7 +96,7 @@ describe('Server', () => {
         });
 
         it('should close the server successfully', async () => {
-            const server = startServer({ processUpdate: jest.fn() });
+            const server = startServer({ processUpdate: jest.fn() } as unknown as TelegramBot);
             closeServer();
             expect(server.listening).toBe(false);
         });

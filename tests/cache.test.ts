@@ -2,7 +2,7 @@ import { jest, describe, it, expect, beforeEach } from '@jest/globals';
 import { CachedMemeData, MemeContext } from '../src/bot/types/types';
 
 // --- Define variables that will hold the mock implementations ---
-let mockRedisInstance: any;
+let mockRedisInstance;
 let mockRedisStore: Map<string, string>;
 let mockGenerateContent: jest.Mock;
 
@@ -23,7 +23,7 @@ jest.mock('@google/genai', () => ({
 }));
 
 describe('MemeCache Singleton', () => {
-  let memeCache: any; // This will hold the fresh instance for each test
+  let memeCache; // This will hold the fresh instance for each test
 
   beforeEach(async () => {
     // --- 1. Reset the state and variables used by the mocks ---
@@ -62,16 +62,16 @@ describe('MemeCache Singleton', () => {
   describe('Meme Data Caching', () => {
     it('should cache and retrieve meme data', async () => {
       const memeName = 'test-meme';
-      const memeData: Omit<CachedMemeData, 'timestamp'> = {
-        url: 'http://example.com/meme.jpg',
-        pageUrl: 'http://example.com/page',
+      const memeData: Partial<CachedMemeData> = {
+        blankTemplateUrl: 'http://example.com/meme.jpg',
+        memePageUrl: 'http://example.com/page',
       };
 
       await memeCache.cacheMeme(memeName, memeData);
       const cached = await memeCache.getCachedMeme(memeName);
 
       expect(cached).not.toBeNull();
-      expect(cached?.url).toBe(memeData.url);
+      expect(cached?.url).toBe(memeData.blankTemplateUrl);
       expect(mockRedisInstance.setex).toHaveBeenCalledWith(
         `meme:${memeName}`,
         3600, // 1 hour
@@ -110,10 +110,9 @@ describe('MemeCache Singleton', () => {
 
   describe('User Context Management', () => {
     const chatId = 12345;
-    const context: MemeContext = {
-      meme: 'test-meme',
-      template: 'template1',
-      text: ['top text', 'bottom text'],
+    const context: Partial<MemeContext> = {
+      memeName: 'test-meme',
+      blankTemplateUrl: 'template1',
       lastRequestTime: 0, // will be updated
     };
 
@@ -121,7 +120,7 @@ describe('MemeCache Singleton', () => {
       await memeCache.setUserContext(chatId, context);
       const retrievedContext = await memeCache.getUserContext(chatId);
 
-      expect(retrievedContext).toEqual(expect.objectContaining({ meme: context.meme }));
+      expect(retrievedContext).toEqual(expect.objectContaining({ meme: context.memeName }));
       expect(mockRedisInstance.setex).toHaveBeenCalledWith(
         `user_context:${chatId}`,
         1800, // 30 minutes
@@ -156,7 +155,7 @@ describe('MemeCache Singleton', () => {
         const generatedMemes = ['gen-meme1', 'gen-meme2', 'gen-meme3', 'gen-meme4', 'gen-meme5'];
         
         // MONKEY-PATCH: Directly overwrite the method on the instance
-        memeCache.generatePopularMemes = jest.fn().mockResolvedValue(generatedMemes);
+        memeCache.generatePopularMemes = jest.fn().mockResolvedValue(generatedMemes as never);
 
         const memes = await memeCache.getPopularMemes();
         
@@ -165,19 +164,19 @@ describe('MemeCache Singleton', () => {
         expect(memes).toEqual(generatedMemes);
         expect(mockRedisInstance.setex).toHaveBeenCalledWith(
           'popular_memes',
-          7200, // 2 hours
+          3600,
           expect.any(String)
         );
       }, 10000);
 
       it('should use fallback memes if AI generation fails', async () => {
-        mockGenerateContent.mockRejectedValue(new Error('AI failed'));
+        mockGenerateContent.mockRejectedValue(new Error('AI failed') as never);
         const memes = await memeCache.getPopularMemes();
         expect(memes.length).toBe(5);
         expect(memes).toEqual(expect.any(Array));
         expect(mockRedisInstance.setex).toHaveBeenCalledWith(
             'popular_memes',
-            7200, // 2 hours
+            3600,
             expect.any(String)
           );
       });

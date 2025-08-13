@@ -39,25 +39,28 @@ const modelName = process.env.MODEL_NAME!;
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 const TAG_MEME = process.env.TAG_MEME!;
 
-const toolFunctions: Record<string, Function> = {
+type MemeToolFunction = (page: Page, memeName: string) => Promise<MemeSearchResult | MemeImageData[] | null>;
+
+const toolFunctions: Record<string, MemeToolFunction> = {
     search_meme: searchMemeAndGetFirstLink,
     scrape_meme_images: scrapeMemeImagesFromPage
 };
 
 
 // Enhanced AI call with retry logic
-async function callAIWithRetry(
-    aiCall: () => Promise<any>,
+async function callAIWithRetry<T>(
+    aiCall: () => Promise<T>,
     operation: string,
     attempt: number = 1
-): Promise<any> {
+): Promise<T> {
     try {
         console.log(`🤖 ${operation} - Attempt ${attempt}/${RETRY_CONFIG.maxRetries + 1}`);
         return await aiCall();
-    } catch (error: any) {
-        console.error(`❌ ${operation} failed (attempt ${attempt}):`, error?.message || error);
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error(`❌ ${operation} failed (attempt ${attempt}):`, errorMessage);
 
-        if (isRetryableError(error) && attempt <= RETRY_CONFIG.maxRetries) {
+        if (isRetryableError(error as Error) && attempt <= RETRY_CONFIG.maxRetries) {
             const delay = calculateDelay(attempt);
             console.log(`⏳ Retrying ${operation} in ${delay}ms... (attempt ${attempt + 1})`);
 
@@ -177,11 +180,11 @@ export async function runMemeAgent(
                     console.log(`🌐 Step 2: Executing AI-guided meme search`);
                     memeSearchResult = await toolFunctions[functionCallStep1.name](
                         page,
-                        functionCallStep1.args!.memeName
+                        functionCallStep1.args!.memeName as string
                     ) as MemeSearchResult;
                 }
             }
-        } catch (aiError: any) {
+        } catch {
             console.log(`⚠️ AI-guided search failed, falling back to direct search...`);
 
             // Fallback: Direct search without AI
@@ -258,7 +261,7 @@ export async function runMemeAgent(
                 console.log("✅ Origin story completed");
                 return streamedText;
 
-            } catch (originError: any) {
+            } catch {
                 console.log(`⚠️ AI origin story failed, using fallback...`);
                 return generateFallbackOriginStory(memeNameInput);
             }
@@ -347,7 +350,7 @@ Example format:
             finalSummary = finalResult.text || generateFallbackMemeInfo(memeNameInput, memeSearchResult, scrapedImages);
             console.log("✅ AI summary generated successfully");
 
-        } catch (summaryError: any) {
+        } catch {
             console.log(`⚠️ AI summary failed, using fallback...`);
             finalSummary = generateFallbackMemeInfo(memeNameInput, memeSearchResult, scrapedImages);
         }
