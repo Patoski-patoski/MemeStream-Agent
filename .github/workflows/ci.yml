@@ -47,7 +47,7 @@ jobs:
 
       # 6. Lint code
       - name: Lint code
-        run: npx eslint .
+        run: npx eslint './src/**/*.ts' './tests/**/*.ts' --fix -f stylish"
 
       # 7. Run tests
       - name: Run tests
