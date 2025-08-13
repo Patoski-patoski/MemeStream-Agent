@@ -132,9 +132,8 @@ This project showcases the ability to:
 
 Ready to discuss how this experience translates to building amazing products at Imgflip!
 
-**Live Demo:** [Bot Username: @YourBotName]  
-**Repository:** [GitHub Link]  
-**Documentation:** [Detailed API Docs]
+**Live Demo:** [Bot Username: @memestreamAgent]  
+**Repository:** [https://github.com/Patoski-patoski/MemeStream-Agent/settings]  
 
 
 ## Development Prerequisites
@@ -200,6 +199,7 @@ Once the bot is running and the webhook is set:
 2.  Send commands to interact with it:
     -   `/start` - Get a welcome message and instructions.
     -   `/meme [name]` - Search for a specific meme.
+    -   `/meme [name]` - Search for a blank meme image.
 
     **Example:**
     ```
