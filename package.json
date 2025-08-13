@@ -7,7 +7,10 @@
     "build": "tsc",
     "lint": "eslint './src/**/*.ts' './tests/**/*.ts' --fix -f stylish",
     "start": "node dist/bot/bot.js",
-    "postinstall": "npx playwright install"
+    "postinstall": "npx playwright install",
+    "clean": "rm -rf dist",
+    "build:ci": "npm run clean && npm run lint && npm test && npm run build",
+    "docker:build": "docker build -t memestream-agent ."
   },
   "keywords": [],
   "author": "",
