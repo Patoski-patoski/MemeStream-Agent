@@ -1,3 +1,11 @@
-.env
 node_modules
-test
+.git
+.github
+*.md
+.env*
+coverage/
+dist/
+.nyc_output
+.eslintcache
+*.log
+.DS_Store

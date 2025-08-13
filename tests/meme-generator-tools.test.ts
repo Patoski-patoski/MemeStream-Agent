@@ -22,6 +22,8 @@ import {
     MemeSearchResult,
 } from '../src/meme-generator/types/types';
 
+import { TIMEOUTS, SELECTORS } from "../src/meme-generator/utils/constants.js";
+
 
 // Mock environment variables
 const originalEnv = process.env;
@@ -134,9 +136,9 @@ describe('Meme Generator Tools', () => {
 
             // Setup page mock calls
             mockPage.$.mockImplementation((selector) => {
-                if (selector === '#mm-search') return Promise.resolve(mockSearchInput);
-                if (selector === '.mm-rec-link') return Promise.resolve(mockFirstResultLink);
-                if (selector === '.mm-img.shadow') return Promise.resolve(mockPreviewImg);
+                if (selector === SELECTORS.SEARCH_INPUT) return Promise.resolve(mockSearchInput);
+                if (selector === SELECTORS.FIRST_RESULT) return Promise.resolve(mockFirstResultLink);
+                if (selector === SELECTORS.PREVIEW_IMAGE) return Promise.resolve(mockPreviewImg);
                 return Promise.resolve(null);
             });
 
@@ -150,10 +152,10 @@ describe('Meme Generator Tools', () => {
             expect(result).toEqual(expectedResult);
             expect(mockPage.goto).toHaveBeenCalledWith('https://imgflip.com/memegenerator',
                 { waitUntil: 'domcontentloaded', timeout: 30000 });
-            expect(mockPage.$).toHaveBeenCalledWith('#mm-search');
+            expect(mockPage.$).toHaveBeenCalledWith(SELECTORS.SEARCH_INPUT);
             expect(mockSearchInput.fill).toHaveBeenCalledWith(memeName);
             expect(mockSearchInput.press).toHaveBeenCalledWith('Enter');
-            expect(mockPage.waitForSelector).toHaveBeenCalledWith('.mm-rec-link', { timeout: 30000 });
+            expect(mockPage.waitForSelector).toHaveBeenCalledWith(SELECTORS.FIRST_RESULT, { timeout: TIMEOUTS.ELEMENT_WAIT });
         });
 
         it('should return null when search input is not found', async () => {
@@ -178,15 +180,15 @@ describe('Meme Generator Tools', () => {
             };
 
             mockPage.$.mockImplementation((selector) => {
-                if (selector === '#mm-search') return Promise.resolve(mockSearchInput);
-                if (selector === '.mm-rec-link') return Promise.resolve(null);
+                if (selector === SELECTORS.SEARCH_INPUT) return Promise.resolve(mockSearchInput);
+                if (selector === SELECTORS.FIRST_RESULT) return Promise.resolve(null);
                 return Promise.resolve(null);
             });
 
             const result = await searchMemeAndGetFirstLink(mockPage as unknown as Page, memeName);
 
             expect(result).toBeNull();
-            expect(mockPage.waitForSelector).toHaveBeenCalledWith('.mm-rec-link', { timeout: 30000 });
+            expect(mockPage.waitForSelector).toHaveBeenCalledWith(SELECTORS.FIRST_RESULT, { timeout: TIMEOUTS.ELEMENT_WAIT });
         });
     });
 
@@ -219,7 +221,7 @@ describe('Meme Generator Tools', () => {
 
             expect(result).toEqual(expectedResult);
             expect(mockPage.goto).toHaveBeenCalledWith(memePageUrl,
-                { waitUntil: 'domcontentloaded', timeout: 10000 });
+                { waitUntil: 'domcontentloaded', timeout: TIMEOUTS.ELEMENT_WAIT });
             expect(mockPage.evaluate).toHaveBeenCalled();
         });
 
@@ -236,7 +238,7 @@ describe('Meme Generator Tools', () => {
 
             expect(result).toEqual([]);
             expect(mockPage.goto).toHaveBeenCalledWith(memePageUrl,
-                { waitUntil: 'domcontentloaded', timeout: 10000 });
+                { waitUntil: 'domcontentloaded', timeout: TIMEOUTS.ELEMENT_WAIT });
         });
 
         it('should return empty array when extractMemeImageData returns null', async () => {
@@ -259,12 +261,14 @@ describe('Meme Generator Tools', () => {
             // Mock page.goto to throw an error
             mockPage.goto.mockRejectedValue(new Error('Navigation failed') as never);
 
+            const result = await scrapeMemeImagesFromPage(mockPage as unknown as Page, memePageUrl);
 
-            await expect(scrapeMemeImagesFromPage(mockPage as unknown as Page, memePageUrl))
-                .rejects.toThrow('Navigation failed');
+            expect(result).toEqual([]);
 
-            expect(mockPage.goto).toHaveBeenCalledWith(memePageUrl,
-                { waitUntil: 'domcontentloaded', timeout: 10000 });
+            expect(mockPage.goto).toHaveBeenCalledWith(memePageUrl, {
+                waitUntil: 'domcontentloaded',
+                timeout: TIMEOUTS.ELEMENT_WAIT
+            });
         });
 
         it('should properly handle scrolling functionality', async () => {

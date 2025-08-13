@@ -1,63 +1,76 @@
-# Use Node.js 18 with Playwright dependencies pre-installed
-FROM mcr.microsoft.com/playwright:v1.40.0-focal
+# syntax=docker/dockerfile:1
 
-# Set working directory
+# Multi-stage build for optimal size
+FROM node:18-slim as builder
+
 WORKDIR /app
 
-# Install additional system dependencies for better stability
-RUN apt-get update && apt-get install -y \
-    fonts-liberation \
-    libappindicator3-1 \
+# Copy package files
+COPY package*.json tsconfig.json ./
+
+# Install dependencies with cache mount for faster rebuilds
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci
+
+# Copy source code and build
+COPY . .
+RUN npm run build
+
+# Remove dev dependencies with cache mount
+RUN --mount=type=cache,target=/root/.npm \
+    npm prune --production
+
+# Final stage - use minimal base image
+FROM node:18-slim
+
+# Install only essential system dependencies for Playwright
+RUN --mount=type=cache,target=/var/cache/apt \
+    --mount=type=cache,target=/var/lib/apt/lists \
+    apt-get update && apt-get install -y --no-install-recommends \
+    # Essential for Playwright browsers
+    libnss3 \
     libatk-bridge2.0-0 \
     libdrm2 \
+    libxkbcommon0 \
     libxcomposite1 \
     libxdamage1 \
     libxrandr2 \
     libgbm1 \
-    libxss1 \
+    libgtk-3-0 \
     libasound2 \
-    && rm -rf /var/lib/apt/lists/*
+    # Minimal font support
+    fonts-liberation \
+    # For health checks
+    curl \
+    && apt-get clean
 
+WORKDIR /app
 
+# Copy built application and production dependencies from builder
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package*.json ./
 
-# Copy package files first (better caching)
-COPY package*.json tsconfig.json ./
+# Install only chromium with cache mount (matches CI)
+RUN --mount=type=cache,target=/root/.cache/ms-playwright \
+    npx playwright install chromium --with-deps
 
-# Install dependencies (including dev dependencies for build)
-RUN npm ci
-
-# Invalidate cache from this point forward
-ARG CACHE_BUST=1
-
-# Copy source code
-COPY . .
-
-
-# Create non-root user for better security
+# Create non-root user
 RUN groupadd -r botuser && useradd -r -g botuser -G audio,video botuser \
     && mkdir -p /home/botuser/Downloads \
     && chown -R botuser:botuser /home/botuser \
     && chown -R botuser:botuser /app
 
-# Switch to non-root user
 USER botuser
 
-# Build TypeScript
-RUN npm run build
-
-# Remove dev dependencies to reduce image size
-RUN npm prune --production
-
-# Set memory limit for Node.js (important for containers)
+# Environment variables
 ENV NODE_OPTIONS="--max-old-space-size=1024"
+ENV NODE_ENV=production
 
-
-# Expose port
 EXPOSE 3300
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+HEALTHCHECK --interval=60s --timeout=15s --start-period=15s --retries=5 \
     CMD curl -f http://localhost:3300/health || exit 1
 
-# Start the application
 CMD ["node", "dist/bot/bot.js"]
