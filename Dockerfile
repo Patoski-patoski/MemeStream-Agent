@@ -24,8 +24,9 @@ RUN --mount=type=cache,target=/root/.npm \
 FROM node:20-slim
 
 # Install only essential system dependencies for Playwright
-RUN --mount=type=cache,target=/var/cache/apt \
-    apt-get update && apt-get install -y --no-install-recommends \
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    apt-utils \
     # Essential for Playwright browsers
     libnss3 \
     libatk-bridge2.0-0 \
@@ -43,6 +44,7 @@ RUN --mount=type=cache,target=/var/cache/apt \
     curl \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
+
 
 WORKDIR /app
 
