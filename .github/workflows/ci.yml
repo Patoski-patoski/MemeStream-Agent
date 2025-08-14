@@ -3,6 +3,9 @@ name: CI/CD
 on:
   push:
     branches: [ main ]
+    paths:
+      - 'src/**'
+      - 'Dockerfile'
   pull_request:
     branches: [ main ]
 
