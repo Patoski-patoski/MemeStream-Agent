@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # Multi-stage build for optimal size
-FROM node:18-slim as builder
+FROM node:20-slim as builder
 
 WORKDIR /app
 
@@ -21,7 +21,7 @@ RUN --mount=type=cache,target=/root/.npm \
     npm prune --production
 
 # Final stage - use minimal base image
-FROM node:18-slim
+FROM node:20-slim
 
 # Install only essential system dependencies for Playwright
 RUN --mount=type=cache,target=/var/cache/apt \
