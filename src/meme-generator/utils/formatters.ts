@@ -1,4 +1,4 @@
-// src/utils/urlFormatter.ts
+// src/meme-geutils/urlFormatter.ts
 
 /**
  * Formats meme name for URL usage by converting spaces to hyphens
