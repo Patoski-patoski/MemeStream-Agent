@@ -94,7 +94,6 @@ describe('Server', () => {
             if (typeof address === 'object' && address !== null) {
                 expect(address.port).toBe(3300);
             }
-            server.close();
         });
 
         it('should close the server successfully', async () => {

@@ -15,6 +15,8 @@ env:
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      MEME_URL: https://imgflip.com/memegenerator
     steps:
       # 1. Checkout repo
       - uses: actions/checkout@v4
