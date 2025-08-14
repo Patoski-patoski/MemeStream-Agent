@@ -18,7 +18,9 @@ import {
     TELEGRAM_BOT_TOKEN
 } from '../utils/constants.js';
 
-dotenv.config();
+if (process.env.NODE_ENV !== 'production') {
+  dotenv.config();
+}
 
 if (!TELEGRAM_BOT_TOKEN) {
     console.error('❌ TELEGRAM_BOT_TOKEN is not set in your .env file.');

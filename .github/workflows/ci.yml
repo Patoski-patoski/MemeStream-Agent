@@ -63,6 +63,18 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    env:
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      MODEL_NAME: ${{ secrets.MODEL_NAME }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      MEME_URL: ${{ secrets.MEME_URL }}
+      TAG_MEME: ${{ secrets.TAG_MEME }}
+      WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
+      PORT: ${{ secrets.PORT }}
+      REDIS_HOST: ${{ secrets.REDIS_HOST }}
+      REDIS_PORT: ${{ secrets.REDIS_PORT }}
+      REDIS_URL: ${{ secrets.REDIS_URL }}
+      UPSTASH_REDIS_URL: ${{ secrets.UPSTASH_REDIS_URL }}
     
     steps:
       # 1. Checkout repo

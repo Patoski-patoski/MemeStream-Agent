@@ -33,7 +33,9 @@ import {
 
 import { memeCache } from "../../bot/core/cache.js";
 
-dotenv.config();
+if (process.env.NODE_ENV !== 'production') {
+  dotenv.config();
+}
 
 const modelName = process.env.MODEL_NAME!;
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });

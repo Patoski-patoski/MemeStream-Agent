@@ -7,7 +7,9 @@ import { MemeImageData, MemeSearchResult } from '../types/types.js';
 import { createFullUrl, extractMemeImageData } from '../utils/utils.js';
 import { TIMEOUTS, SELECTORS } from "../utils/constants.js";
 
-dotenv.config();
+if (process.env.NODE_ENV !== 'production') {
+  dotenv.config();
+}
 
 // Configuration constants
 const MEME_SEARCH_URL: string = process.env.MEME_URL as string;
