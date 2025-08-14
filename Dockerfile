@@ -26,6 +26,10 @@ FROM node:18-slim
 # Install only essential system dependencies for Playwright
 RUN --mount=type=cache,target=/var/cache/apt \
     --mount=type=cache,target=/var/lib/apt/lists \
+    # Remove any existing lock files to prevent conflicts
+    rm -f /var/lib/apt/lists/lock && \
+    rm -f /var/cache/apt/archives/lock && \
+    rm -f /var/lib/dpkg/lock* && \
     apt-get update && apt-get install -y --no-install-recommends \
     # Essential for Playwright browsers
     libnss3 \
