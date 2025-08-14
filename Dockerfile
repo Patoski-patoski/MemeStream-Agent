@@ -25,7 +25,6 @@ FROM node:20-slim
 
 # Install only essential system dependencies for Playwright
 RUN --mount=type=cache,target=/var/cache/apt \
-    --mount=type=cache,target=/var/lib/apt/lists \
     apt-get update && apt-get install -y --no-install-recommends \
     # Essential for Playwright browsers
     libnss3 \
@@ -42,7 +41,8 @@ RUN --mount=type=cache,target=/var/cache/apt \
     fonts-liberation \
     # For health checks
     curl \
-    && apt-get clean
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
