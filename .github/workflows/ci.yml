@@ -75,6 +75,7 @@ jobs:
       REDIS_PORT: ${{ secrets.REDIS_PORT }}
       REDIS_URL: ${{ secrets.REDIS_URL }}
       UPSTASH_REDIS_URL: ${{ secrets.UPSTASH_REDIS_URL }}
+      NODE_ENV: ${{ secrets.NODE_ENV }}
     
     steps:
       # 1. Checkout repo
