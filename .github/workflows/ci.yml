@@ -25,7 +25,7 @@ jobs:
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'  # Match Dockerfile
+          node-version: '20'
           cache: 'npm'
 
       # 3. Install dependencies (npm ci is faster and more reliable for CI)
