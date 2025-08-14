@@ -1,4 +1,5 @@
 export default {
+  preset: 'ts-jest/presets/default-esm',
   testEnvironment: 'node',
   testMatch: ['**/tests/**/*.test.ts'],
   transform: {
@@ -14,4 +15,5 @@ export default {
   transformIgnorePatterns: [
     '/node_modules/(?!supertest)/',
   ],
+  setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
 };

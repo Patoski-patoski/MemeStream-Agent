@@ -8,8 +8,8 @@
     "lint": "eslint './src/**/*.ts' './tests/**/*.ts' --fix -f stylish",
     "start": "node dist/bot/bot.js",
     "postinstall": "npx playwright install",
-    "clean": "rm -rf dist",
-    "postbuild": "npm run clean && npm run lint && npm test && npm run build",
+    "prebuild": "rm -rf dist",
+    "postbuild": "npm run lint && npm test && npm run start",
     "docker:build": "docker build -t memestream-agent ."
   },
   "keywords": [],

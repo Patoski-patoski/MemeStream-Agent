@@ -78,21 +78,23 @@ describe('Server', () => {
             process.env = OLD_ENV;
         });
 
-        it('should start the server and setup webhook', (done) => {
+        it('should start the server and setup webhook', async () => {
             const bot = {
                 processUpdate: jest.fn() 
             };
             process.env.TELEGRAM_BOT_TOKEN = 'test-token';
             process.env.WEBHOOK_URL = 'http://test.com';
 
-            const server = startServer(bot as unknown as TelegramBot);
-            server.on('listening', () => {
-                const address = server.address();
-                if (typeof address === 'object' && address !== null) {
-                    expect(address.port).toBe(3300);
-                }
-                server.close(done);
+            const server = await new Promise<http.Server>((resolve) => {
+                const server = startServer(bot as unknown as TelegramBot);
+                server.on('listening', () => resolve(server));
             });
+
+            const address = server.address();
+            if (typeof address === 'object' && address !== null) {
+                expect(address.port).toBe(3300);
+            }
+            server.close();
         });
 
         it('should close the server successfully', async () => {
