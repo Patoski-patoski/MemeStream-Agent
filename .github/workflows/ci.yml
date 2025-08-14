@@ -76,6 +76,8 @@ jobs:
       REDIS_URL: ${{ secrets.REDIS_URL }}
       UPSTASH_REDIS_URL: ${{ secrets.UPSTASH_REDIS_URL }}
       NODE_ENV: ${{ secrets.NODE_ENV }}
+      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+      DOCKER_ACCESS_TOKEN: ${{ secrets.DOCKER_ACCESS_TOKEN }}
     
     steps:
       # 1. Checkout repo
