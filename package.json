@@ -9,7 +9,7 @@
     "start": "node dist/bot/bot.js",
     "postinstall": "npx playwright install",
     "prebuild": "rm -rf dist",
-    "postbuild": "npm run lint && npm run start",
+    
     "docker:build": "docker build -t memestream-agent ."
   },
   "keywords": [],
