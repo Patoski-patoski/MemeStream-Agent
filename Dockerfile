@@ -1,35 +1,34 @@
 # syntax=docker/dockerfile:1
 
 # Multi-stage build for optimal size
-FROM node:20-slim as builder
+FROM node:18-slim as builder
 
 WORKDIR /app
 
 # Copy package files
 COPY package*.json tsconfig.json ./
 
-# Install dependencies
-RUN npm ci
+# Install dependencies with cache mount for faster rebuilds
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci
 
 # Copy source code and build
 COPY . .
 RUN npm run build
 
-# Remove dev dependencies
-RUN npm prune --production
+# Remove dev dependencies with cache mount
+RUN --mount=type=cache,target=/root/.npm \
+    npm prune --production
 
-# Final stage - use Ubuntu LTS for better package stability
-FROM ubuntu:22.04
+# Final stage - use minimal base image
+FROM node:18-slim
 
-# Install Node.js 20 and system dependencies in one layer
-RUN apt-get update && \
-    apt-get install -y curl ca-certificates gnupg && \
-    curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
-    apt-get install -y nodejs && \
-    # Install Playwright dependencies
-    apt-get install -y --no-install-recommends \
+# Install only essential system dependencies for Playwright
+RUN --mount=type=cache,target=/var/cache/apt \
+    --mount=type=cache,target=/var/lib/apt/lists \
+    apt-get update && apt-get install -y --no-install-recommends \
+    # Essential for Playwright browsers
     libnss3 \
-    libnspr4 \
     libatk-bridge2.0-0 \
     libdrm2 \
     libxkbcommon0 \
@@ -39,20 +38,11 @@ RUN apt-get update && \
     libgbm1 \
     libgtk-3-0 \
     libasound2 \
-    libxss1 \
+    # Minimal font support
     fonts-liberation \
-    libappindicator3-1 \
-    libx11-xcb1 \
-    libxcb-dri3-0 \
-    libxtst6 \
-    libatspi2.0-0 \
-    libcairo-gobject2 \
-    libgdk-pixbuf2.0-0 \
-    libpangocairo-1.0-0 \
-    # Clean up
-    && apt-get autoremove -y \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+    # For health checks
+    curl \
+    && apt-get clean
 
 WORKDIR /app
 
@@ -61,7 +51,7 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package*.json ./
 
-# Install only chromium
+# Install only chromium with cache mount (matches CI)
 RUN npx playwright install chromium --with-deps
 
 # Create non-root user
