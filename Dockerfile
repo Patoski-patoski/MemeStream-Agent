@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # Multi-stage build for optimal size
-FROM node:18-slim as builder
+FROM node:20-slim as builder
 
 WORKDIR /app
 
@@ -21,19 +21,19 @@ RUN --mount=type=cache,target=/root/.npm \
     npm prune --production
 
 # Final stage - use minimal base image
-FROM node:18-slim
+FROM node:20-slim
 
 # Install only essential system dependencies for Playwright
 RUN --mount=type=cache,target=/var/cache/apt \
     --mount=type=cache,target=/var/lib/apt/lists \
-    # Clean up any corrupted cache files and locks
+    # Clean up any existing state
     rm -rf /var/lib/apt/lists/* && \
     rm -f /var/lib/apt/lists/lock && \
     rm -f /var/cache/apt/archives/lock && \
     rm -f /var/lib/dpkg/lock* && \
-    # Force clean apt state
-    apt-get clean && \
-    apt-get update && apt-get install -y --no-install-recommends \
+    # Update package lists and install dependencies
+    apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     # Essential for Playwright browsers
     libnss3 \
     libatk-bridge2.0-0 \
@@ -45,11 +45,28 @@ RUN --mount=type=cache,target=/var/cache/apt \
     libgbm1 \
     libgtk-3-0 \
     libasound2 \
+    libxss1 \
+    libgconf-2-4 \
+    # Additional dependencies that might be missing
+    libx11-xcb1 \
+    libxcb-dri3-0 \
+    libxtst6 \
+    libxrandr2 \
+    libasound2 \
+    libpangocairo-1.0-0 \
+    libatk1.0-0 \
+    libcairo-gobject2 \
+    libgtk-3-0 \
+    libgdk-pixbuf2.0-0 \
     # Minimal font support
     fonts-liberation \
     # For health checks
     curl \
-    && apt-get clean
+    ca-certificates \
+    # Clean up
+    && apt-get autoremove -y \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 WORKDIR /app
 
