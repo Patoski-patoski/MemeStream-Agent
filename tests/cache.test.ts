@@ -9,12 +9,12 @@ let mockGenerateContent: jest.Mock;
 // --- Mock the modules at the top level of the file ---
 jest.mock('ioredis', () => ({
     __esModule: true,
-    // The Redis constructor will be a mock function that returns our mock instance
+    // The Redis constructor will be a mock function that returns a mock instance
     Redis: jest.fn(() => mockRedisInstance),
 }));
 
 jest.mock('@google/genai', () => ({
-    // The GoogleGenAI constructor will be a mock function that returns our mock AI object
+    // The GoogleGenAI constructor will be a mock function that returns the mock AI object
     GoogleGenAI: jest.fn(() => ({
         models: {
             generateContent: mockGenerateContent,
@@ -71,7 +71,7 @@ describe('MemeCache Singleton', () => {
       const cached = await memeCache.getCachedMeme(memeName);
 
       expect(cached).not.toBeNull();
-      expect(cached?.url).toBe(memeData.blankTemplateUrl);
+      expect(cached?.blankTemplateUrl).toBe(memeData.blankTemplateUrl);
       expect(mockRedisInstance.setex).toHaveBeenCalledWith(
         `meme:${memeName}`,
         3600, // 1 hour
@@ -120,7 +120,7 @@ describe('MemeCache Singleton', () => {
       await memeCache.setUserContext(chatId, context);
       const retrievedContext = await memeCache.getUserContext(chatId);
 
-      expect(retrievedContext).toEqual(expect.objectContaining({ meme: context.memeName }));
+      expect(retrievedContext).toEqual(expect.objectContaining({ memeName: context.memeName }));
       expect(mockRedisInstance.setex).toHaveBeenCalledWith(
         `user_context:${chatId}`,
         1800, // 30 minutes
