@@ -604,10 +604,11 @@ export const handleCallbackQuery = (bot: TelegramBot) => {
                     return;
                 }
 
-                context.currentPage += 1;
+                const currentPage = context.currentPage ? context.currentPage + 1 : 2;
+                context.currentPage = currentPage;
                 await memeCache.setUserContext(chatId, context);
 
-                const loadingMsg = await bot.sendMessage(chatId, `🔍 *Loading templates from page ${context.currentPage}...*`, { parse_mode: 'Markdown' });
+                const loadingMsg = await bot.sendMessage(chatId, `🔍 *Loading templates from page ${currentPage}...*`, { parse_mode: 'Markdown' });
 
                 const browser = getBrowser();
                 if (!browser) {
@@ -618,31 +619,31 @@ export const handleCallbackQuery = (bot: TelegramBot) => {
                 let page: Page | undefined;
                 try {
                     page = await browser.newPage();
-                    const nextPageUrl = constructPageUrl(context.memePageUrl, context.currentPage);
+                    const nextPageUrl = constructPageUrl(context.memePageUrl, currentPage);
                     const { scrapeMemeImagesFromPage } = await import('../../meme-generator/tools/meme-generator-tools.js');
                     const moreImages = await scrapeMemeImagesFromPage(page, nextPageUrl);
 
                     if (!moreImages || moreImages.length === 0) {
-                        context.currentPage = Math.max(1, context.currentPage - 1);
+                        context.currentPage = Math.max(1, currentPage - 1);
                         await memeCache.setUserContext(chatId, context);
-                        await bot.editMessageText(`📄 *No more templates found on page ${context.currentPage + 1}*`, { chat_id: chatId, message_id: loadingMsg.message_id, parse_mode: 'Markdown' });
+                        await bot.editMessageText(`📄 *No more templates found on page ${currentPage}*`, { chat_id: chatId, message_id: loadingMsg.message_id, parse_mode: 'Markdown' });
                         return;
                     }
 
-                    await bot.editMessageText(`✅ Found ${moreImages.length} templates on page ${context.currentPage}!`, { chat_id: chatId, message_id: loadingMsg.message_id });
+                    await bot.editMessageText(`✅ Found ${moreImages.length} templates on page ${currentPage}!`, { chat_id: chatId, message_id: loadingMsg.message_id });
 
                     const relevantImages = moreImages.filter(img => img.src.includes('http'));
                     if (relevantImages.length > 0) {
-                        await bot.sendMessage(chatId, `🔍 *Page ${context.currentPage} Templates* (${relevantImages.length} images)`);
+                        await bot.sendMessage(chatId, `🔍 *Page ${currentPage} Templates* (${relevantImages.length} images)`);
 
                         for (let i = 0; i < relevantImages.length; i++) {
                             const image = relevantImages[i];
                             try {
-                                const caption = `🎭 *Page ${context.currentPage} - Example ${i + 1}/${relevantImages.length}*\n\n${image.alt.replace(/"/g, '').substring(0, 200)}`;
+                                const caption = `🎭 *Page ${currentPage} - Example ${i + 1}/${relevantImages.length}*\n\n${image.alt.replace(/"/g, '').substring(0, 200)}`;
                                 await bot.sendPhoto(chatId, image.src, { caption, parse_mode: 'Markdown' });
                                 if (i < relevantImages.length - 1) await new Promise(resolve => setTimeout(resolve, 1000));
                             } catch (error) {
-                                console.error(`Error sending image ${i + 1} from page ${context.currentPage}:`, error);
+                                console.error(`Error sending image ${i + 1} from page ${currentPage}:`, error);
                             }
                         }
 
@@ -650,7 +651,7 @@ export const handleCallbackQuery = (bot: TelegramBot) => {
                             inline_keyboard: [
                                 [
                                     { text: '🎨 Get Blank Template', callback_data: `blank_template_${chatId}` },
-                                    { text: `🔍 Page ${context.currentPage + 1} →`, callback_data: `more_templates_${chatId}` }
+                                    { text: `🔍 Page ${currentPage + 1} →`, callback_data: `more_templates_${chatId}` }
                                 ],
                                 [
                                     { text: '✨ Create Your Own', url: `${MEME_URL}/${formatMemeNameForUrl(context.memeName)}` }
@@ -661,13 +662,13 @@ export const handleCallbackQuery = (bot: TelegramBot) => {
                                 ]
                             ]
                         };
-                        await bot.sendMessage(chatId, `📋 *Page ${context.currentPage} loaded!*`, { parse_mode: 'Markdown', reply_markup: continueKeyboard });
+                        await bot.sendMessage(chatId, `📋 *Page ${currentPage} loaded!*`, { parse_mode: 'Markdown', reply_markup: continueKeyboard });
                     }
                 } catch (error) {
-                    console.error(`Error loading page ${context.currentPage}:`, error);
-                    context.currentPage = Math.max(1, context.currentPage - 1);
+                    console.error(`Error loading page ${currentPage}:`, error);
+                    context.currentPage = Math.max(1, currentPage - 1);
                     await memeCache.setUserContext(chatId, context);
-                    await bot.editMessageText(`❌ *Error loading page ${context.currentPage + 1}*`, { chat_id: chatId, message_id: loadingMsg.message_id, parse_mode: 'Markdown' });
+                    await bot.editMessageText(`❌ *Error loading page ${currentPage}*`, { chat_id: chatId, message_id: loadingMsg.message_id, parse_mode: 'Markdown' });
                 } finally {
                     if (page) await page.close();
                 }

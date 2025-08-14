@@ -1,7 +1,7 @@
 import { jest, describe, it, expect, beforeEach } from '@jest/globals';
 import { CachedMemeData, MemeContext } from '../src/bot/types/types';
 
-// --- Variables that will hold the mock implementations ---
+// --- Define variables that will hold the mock implementations ---
 let mockRedisInstance;
 let mockRedisStore: Map<string, string>;
 let mockGenerateContent: jest.Mock;
