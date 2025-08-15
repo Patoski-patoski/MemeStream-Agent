@@ -201,7 +201,7 @@ Distributed under the ISC License. See `LICENSE` for more information.
 
 ## 📞 Contact
 
-Patrick Patoski - [@patrickpatoski](https://twitter.com/codesbypatrick)
+Patrick Patoski - [@codesbypatrick](https://twitter.com/codesbypatrick)
 
 Project Link: [https://github.com/Patoski-patoski/MemeStream-Agent](https://github.com/Patoski-patoski/MemeStream-Agent)
 

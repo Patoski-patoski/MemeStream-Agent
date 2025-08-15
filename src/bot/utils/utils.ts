@@ -45,9 +45,7 @@ export async function updateProgress(bot: TelegramBot, tracker: ProgressTracker,
                 try {
                     await bot.deleteMessage(tracker.chatId, tracker.messageId);
                 } catch (deleteError) {
-                    if (deleteError.response?.body?.description !== 'Bad Request: message to delete not found') {
                         console.error('Error deleting progress message:', deleteError);
-                    }
                 }
             }, 45000);
         }
