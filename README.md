@@ -3,7 +3,7 @@
 > A Telegram bot that discovers, analyzes, and delivers meme templates with AI-powered context.
 
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/Patoski-patoski/MemeStream-Agent/actions)
-[![License](https://img.shields.io/badge/license-ISC-blue)](LICENSE)
+[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
 ---
 
@@ -195,7 +195,7 @@ Contributions are what make the open-source community such an amazing place to l
 
 ## 📜 License
 
-Distributed under the ISC License. See `LICENSE` for more information.
+Distributed under the MIT License. See `LICENSE` for more information.
 
 ---
 

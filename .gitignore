@@ -1,6 +1,4 @@
 node_modules/
 dist/
 .env
-redis-example.js
 commit.txt 
-top.ts
