@@ -42,8 +42,6 @@ export async function extractMemeImageData(page: Page): Promise<MemeImageData[]>
             src: img.src
         }))
     );
-    console.log('rawImageData in extractMemeImageData:', rawImageData); // Debugging line
-    
 
     return rawImageData.map(data => ({
         ...data,

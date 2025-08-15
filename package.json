@@ -7,10 +7,10 @@
     "build": "tsc",
     "lint": "eslint './src/**/*.ts' './tests/**/*.ts' --fix -f stylish",
     "start": "node dist/bot/bot.js",
-    "postinstall": "npx playwright install",
     "prebuild": "rm -rf dist",
-    
-    "docker:build": "docker build -t memestream-agent ."
+    "docker:build": "docker build -t memestream-agent .",
+    "docker:run": "docker run --env-file .env -p 3300:3300 memestream-agent",
+    "docker:dev": "docker run --env-file .env -p 3300:3300 -v $(pwd)/src:/app/src memestream-agent npm run dev"
   },
   "keywords": [],
   "author": "",

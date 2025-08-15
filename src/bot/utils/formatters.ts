@@ -11,3 +11,17 @@ export const formatMemeNameForUrl = (memeName: string): string => {
         .replace(/-+/g, '-')
         .replace(/^-+|-+$/g, '');
 };
+
+/**
+ * Formats meme name for display by capitalizing the first letter of each word.
+ * @param memeName The input string to format.
+ * @returns The formatted string.
+ */
+export const formatMemeNameForDisplay = (memeName: string): string => {
+    if (!memeName) return '';
+    return memeName
+        .toLowerCase()
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+};

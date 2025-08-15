@@ -35,6 +35,7 @@ export interface ProgressTracker {
   currentStep: number;
   totalSteps: number;
   startTime: number;
+  deletionScheduled?: boolean;
 }
 
 export interface ApiError {

@@ -59,3 +59,5 @@ export type MockPage = Omit<Page, '$eval' | '$$eval'> & {
   $eval: jest.Mock;
   $$eval: jest.Mock;
 };
+
+export type MemeToolFunction = (page: Page, memeName: string) => Promise<MemeSearchResult | MemeImageData[] | null>;

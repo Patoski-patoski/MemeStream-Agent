@@ -10,7 +10,7 @@ import {
     updateProgress,
     constructPageUrl
 } from '../utils/utils.js';
-import { formatMemeNameForUrl } from '../utils/formatters.js';
+import { formatMemeNameForUrl, formatMemeNameForDisplay } from '../utils/formatters.js';
 import { memeCache } from './cache.js';
 
 const MEME_URL = process.env.MEME_URL;
@@ -66,7 +66,9 @@ const triggerFullMemeSearch = async (bot: TelegramBot, chatId: number, memeName:
                         await bot.deleteMessage(chatId, patientMessage.message_id);                        
                     }
                 } catch (deleteError) {
-                    console.error('Error deleting patience message:', deleteError);
+                    if (deleteError.response?.body?.description !== 'Bad Request: message to delete not found') {
+                        console.error('Error deleting patience message:', deleteError);
+                    }
                 }
             }, 45000); 
 
@@ -344,7 +346,7 @@ export const handleHelpCommand = (bot: TelegramBot) => {
 export const handleBlankMemeCommand = (bot: TelegramBot) => {
     bot.onText(/^\/blank( (.+))?/, async (msg, match) => {
         const chatId = msg.chat.id;
-        const memeName = match?.[1];
+        let memeName = match?.[1];
 
         if (!memeName) {
             bot.sendMessage(chatId,
@@ -355,6 +357,7 @@ export const handleBlankMemeCommand = (bot: TelegramBot) => {
             );
             return;
         }
+        memeName = formatMemeNameForDisplay(memeName);
         // Create inline keyboard
         const inlineKeyboard = {
             inline_keyboard: [
@@ -487,7 +490,7 @@ export const handleBlankMemeCommand = (bot: TelegramBot) => {
 export const handleMemeCommand = (bot: TelegramBot) => {
     bot.onText(/^\/meme( (.+))?/, async (msg, match) => {
         const chatId = msg.chat.id;
-        const memeName = match?.[1];
+        let memeName = match?.[1];
 
         if (!memeName) {
             bot.sendMessage(chatId,
@@ -499,6 +502,7 @@ export const handleMemeCommand = (bot: TelegramBot) => {
             return;
         }
 
+        memeName = formatMemeNameForDisplay(memeName);
         await triggerFullMemeSearch(bot, chatId, memeName);
     });
 };

@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-# Multi-stage build for optimal size
+# Build stage - use regular Node.js image for building
 FROM node:20-slim as builder
 
 WORKDIR /app
@@ -8,7 +8,7 @@ WORKDIR /app
 # Copy package files
 COPY package*.json tsconfig.json ./
 
-# Install dependencies with cache mount for faster rebuilds
+# Install all dependencies (including dev dependencies for build)
 RUN --mount=type=cache,target=/root/.npm \
     npm ci
 
@@ -16,62 +16,41 @@ RUN --mount=type=cache,target=/root/.npm \
 COPY . .
 RUN npm run build
 
-# Remove dev dependencies with cache mount
-RUN --mount=type=cache,target=/root/.npm \
-    npm prune --production
-
-# Final stage - use minimal base image
-FROM node:20-slim
-
-# Install only essential system dependencies for Playwright
-ENV DEBIAN_FRONTEND=noninteractive
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    apt-utils \
-    # Essential for Playwright browsers
-    libnss3 \
-    libatk-bridge2.0-0 \
-    libdrm2 \
-    libxkbcommon0 \
-    libxcomposite1 \
-    libxdamage1 \
-    libxrandr2 \
-    libgbm1 \
-    libgtk-3-0 \
-    libasound2 \
-    # Minimal font support
-    fonts-liberation \
-    # For health checks
-    curl \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-
+# Production stage - use Playwright image for runtime
+FROM mcr.microsoft.com/playwright:v1.53.0-noble
 
 WORKDIR /app
 
-# Copy built application and production dependencies from builder
+# Copy package files
+COPY package*.json ./
+
+# Install only production dependencies with cache mount
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --only=production && \
+    npm cache clean --force
+
+# Copy built application from builder stage
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package*.json ./
 
-# Install only chromium with cache mount (matches CI)
-RUN npx playwright install chromium --with-deps
-
-# Create non-root user
+# Create non-root user for security
 RUN groupadd -r botuser && useradd -r -g botuser -G audio,video botuser \
     && mkdir -p /home/botuser/Downloads \
     && chown -R botuser:botuser /home/botuser \
     && chown -R botuser:botuser /app
 
+# Switch to non-root user
 USER botuser
 
 # Environment variables
 ENV NODE_OPTIONS="--max-old-space-size=1024"
 ENV NODE_ENV=production
 
+# Expose port
 EXPOSE 3300
 
 # Health check
 HEALTHCHECK --interval=60s --timeout=15s --start-period=15s --retries=5 \
     CMD curl -f http://localhost:3300/health || exit 1
 
+# Start the application
 CMD ["node", "dist/bot/bot.js"]

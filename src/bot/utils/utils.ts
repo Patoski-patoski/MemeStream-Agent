@@ -39,12 +39,15 @@ export async function updateProgress(bot: TelegramBot, tracker: ProgressTracker,
         );
 
         // Only set deletion timeout once when we reach the final step
-        if ( tracker.chatId && tracker.currentStep === tracker.totalSteps) {
+        if ( tracker.chatId && tracker.currentStep === tracker.totalSteps && !tracker.deletionScheduled) {
+            tracker.deletionScheduled = true;
             setTimeout(async () => {
                 try {
                     await bot.deleteMessage(tracker.chatId, tracker.messageId);
                 } catch (deleteError) {
-                    console.error('Error deleting progress message:', deleteError);
+                    if (deleteError.response?.body?.description !== 'Bad Request: message to delete not found') {
+                        console.error('Error deleting progress message:', deleteError);
+                    }
                 }
             }, 45000);
         }

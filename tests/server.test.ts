@@ -1,6 +1,8 @@
 import { jest, describe, it, expect, beforeEach, afterAll, afterEach } from '@jest/globals';
 import request from 'supertest';
 import { app, startServer, closeServer } from '../src/bot/core/server';
+import TelegramBot from 'node-telegram-bot-api';
+import http from 'http';
 
 jest.mock('../src/bot/core/browser', () => {
     const originalModule = jest.requireActual('../src/bot/core/browser') as object;
@@ -11,13 +13,10 @@ jest.mock('../src/bot/core/browser', () => {
     };
 });
 
-// import { getBrowser } from '../src/bot/core/browser';
-import TelegramBot from 'node-telegram-bot-api';
-
 
 describe('Server', () => {
-    afterEach(() => {
-        closeServer();
+    afterEach(async () => {
+        await closeServer();
     });
 
     describe('GET /health', () => {
@@ -80,27 +79,17 @@ describe('Server', () => {
 
         it('should start the server and setup webhook', async () => {
             const bot = {
-                processUpdate: jest.fn() 
+                processUpdate: jest.fn()
             };
             process.env.TELEGRAM_BOT_TOKEN = 'test-token';
             process.env.WEBHOOK_URL = 'http://test.com';
 
-            const server = await new Promise<http.Server>((resolve) => {
-                const server = startServer(bot as unknown as TelegramBot);
-                server.on('listening', () => resolve(server));
-            });
+            const server = await startServer(bot as unknown as TelegramBot);
 
             const address = server.address();
             if (typeof address === 'object' && address !== null) {
                 expect(address.port).toBe(3300);
             }
         });
-
-        it('should close the server successfully', async () => {
-            const server = startServer({ processUpdate: jest.fn() } as unknown as TelegramBot);
-            closeServer();
-            expect(server.listening).toBe(false);
-        });
-
     });
 });

@@ -19,7 +19,7 @@ import {
     ContentPart,
     MemeSearchResult,
     MemeImageData,
-    
+    MemeToolFunction,
 } from '../types/types.js';
 
 import { RETRY_CONFIG } from "../utils/constants.js";
@@ -41,7 +41,13 @@ const modelName = process.env.MODEL_NAME!;
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 const TAG_MEME = process.env.TAG_MEME!;
 
-type MemeToolFunction = (page: Page, memeName: string) => Promise<MemeSearchResult | MemeImageData[] | null>;
+class MemeNotFoundError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = "MemeNotFoundError";
+    }
+}
+
 
 const toolFunctions: Record<string, MemeToolFunction> = {
     search_meme: searchMemeAndGetFirstLink,
@@ -271,22 +277,17 @@ export async function runMemeAgent(
 
         // Image scraping (this doesn't depend on AI)
         const scrapedImagesPromise = (async () => {
-            try {
-                console.log(`🖼️ Scraping images from: ${memeSearchResult!.memePageFullUrl}`);
-                if (memeSearchResult!.memePageFullUrl === TAG_MEME) {
-                    throw new Error(`Unable to find the "${memeNameInput}" meme`);
-                }
-
-                const scrapedImages = await toolFunctions.scrape_meme_images(
-                    page, memeSearchResult!.memePageFullUrl
-                ) as MemeImageData[];
-
-                console.log(`📸 Found ${scrapedImages.length} images`);
-                return scrapedImages;
-            } catch (scrapeError) {
-                console.error(`❌ Image scraping failed:`, scrapeError);
-                return [] as MemeImageData[];
+            console.log(`🖼️ Scraping images from: ${memeSearchResult!.memePageFullUrl}`);
+            if (memeSearchResult!.memePageFullUrl === TAG_MEME) {
+                throw new MemeNotFoundError(`Unable to find the "${memeNameInput}" meme`);
             }
+
+            const scrapedImages = await toolFunctions.scrape_meme_images(
+                page, memeSearchResult!.memePageFullUrl
+            ) as MemeImageData[];
+
+            console.log(`📸 Found ${scrapedImages.length} images`);
+            return scrapedImages;
         })();
 
         // Wait for both operations
@@ -313,7 +314,7 @@ export async function runMemeAgent(
                 {
                     role: 'user',
                     parts: [{
-                        text: `Create a Telegram-compatible Markdown summary with the following information:
+                        text: `Create a Markdown summary with the following information:
 
 Format the URLs with proper Markdown escaping and add emojis for visual hierarchy:
 
@@ -324,6 +325,7 @@ Format the URLs with proper Markdown escaping and add emojis for visual hierarch
 📸 *Available Examples:* ${scrapedImages?.length || 0} images
 
 Requirements:
+- Markdown must be Telegram-compatible
 - Use single asterisks for *bold* text
 - Add a blank line between each item
 - Keep URLs unformatted (no Markdown)
@@ -401,6 +403,20 @@ Example format:
     } catch (error) {
         console.error("❌ Error in meme agent execution:", error);
         console.log('💾 Memory during error:', getMemoryUsage());
+
+        if (error instanceof MemeNotFoundError) {
+            if (responseHandler) {
+                await responseHandler.sendUpdate(
+                    `❌ *Could not find meme: \"${memeNameInput}\"*\n\n` +
+                    `🔍 Please try:\n` +
+                    `• Check spelling\n` +
+                    `• Use popular meme names (Drake, Distracted Boyfriend, etc.)\n` +
+                    `• Try alternative names\n\n` +
+                    `💡 *Tip:* Search for well-known internet memes`
+                );
+            }
+            return;
+        }
 
         const apiError = error as ApiError;
 
