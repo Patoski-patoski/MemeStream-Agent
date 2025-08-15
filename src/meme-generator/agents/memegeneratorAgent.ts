@@ -407,7 +407,7 @@ Example format:
         if (error instanceof MemeNotFoundError) {
             if (responseHandler) {
                 await responseHandler.sendUpdate(
-                    `❌ *Could not find meme: \"${memeNameInput}\"*\n\n` +
+                    `❌ *Could not find meme: "${memeNameInput}"*\n\n` +
                     `🔍 Please try:\n` +
                     `• Check spelling\n` +
                     `• Use popular meme names (Drake, Distracted Boyfriend, etc.)\n` +

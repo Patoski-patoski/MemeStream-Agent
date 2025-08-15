@@ -2,7 +2,7 @@ import { jest, describe, it, expect, beforeEach, afterAll, afterEach } from '@je
 import request from 'supertest';
 import { app, startServer, closeServer } from '../src/bot/core/server';
 import TelegramBot from 'node-telegram-bot-api';
-import http from 'http';
+// import http from 'http';
 
 jest.mock('../src/bot/core/browser', () => {
     const originalModule = jest.requireActual('../src/bot/core/browser') as object;
