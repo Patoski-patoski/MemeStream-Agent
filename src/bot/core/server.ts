@@ -21,11 +21,9 @@ app.get('/health', (req: Request, res: Response) => {
         headers: req.headers
     });
     
-    const browser = getBrowser();
     res.json({
         status: 'OK',
-        timestamp: new Date().toISOString(),
-        browser: browser ? 'Ready' : 'Not Ready'
+        timestamp: new Date().toISOString()
     });
 });
 
