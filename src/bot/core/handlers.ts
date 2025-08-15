@@ -66,9 +66,7 @@ const triggerFullMemeSearch = async (bot: TelegramBot, chatId: number, memeName:
                         await bot.deleteMessage(chatId, patientMessage.message_id);                        
                     }
                 } catch (deleteError) {
-                    if (deleteError.response?.body?.description !== 'Bad Request: message to delete not found') {
-                        console.error('Error deleting patience message:', deleteError);
-                    }
+                    console.error('Error deleting patience message:', deleteError);
                 }
             }, 45000); 
 

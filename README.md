@@ -9,18 +9,21 @@
 
 ## 📖 Table of Contents
 
-- [🎯 About The Project](#-about-the-project)
-- [🚀 Key Features](#-key-features)
-- [🛠️ Technical Stack](#️-technical-stack)
-- [🏁 Getting Started](#-getting-started)
-  - [Prerequisites](#prerequisites)
-  - [Installation](#installation)
-  - [Configuration](#configuration)
-- [💡 Usage](#-usage)
-- [📂 Project Structure](#-project-structure)
-- [🤝 Contributing](#-contributing)
-- [📜 License](#-license)
-- [📞 Contact](#-contact)
+- [MemeStream Agent 🎭](#memestream-agent-)
+  - [📖 Table of Contents](#-table-of-contents)
+  - [🎯 About The Project](#-about-the-project)
+    - [Architecture Overview](#architecture-overview)
+  - [🚀 Key Features](#-key-features)
+  - [🛠️ Technical Stack](#️-technical-stack)
+  - [🏁 Getting Started](#-getting-started)
+    - [Prerequisites](#prerequisites)
+    - [Installation](#installation)
+    - [Configuration](#configuration)
+  - [💡 Usage](#-usage)
+  - [📂 Project Structure](#-project-structure)
+  - [🤝 Contributing](#-contributing)
+  - [📜 License](#-license)
+  - [📞 Contact](#-contact)
 
 ---
 
@@ -32,7 +35,7 @@ This project demonstrates a robust, scalable, and resilient architecture, with a
 
 ### Architecture Overview
 
-```
+```bash
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
 │   Telegram Bot  │───▶│  Meme Agent     │───▶│  Web Scraping   │
 │   (Webhook)     │    │  (AI Logic)     │    │  (Playwright)   │
@@ -81,25 +84,29 @@ Follow these instructions to get a copy of the project up and running on your lo
 
 ### Installation
 
-1.  Clone the repository:
+1. Clone the repository:
+
     ```bash
     git clone https://github.com/Patoski-patoski/MemeStream-Agent.git
     cd MemeStream-Agent
     ```
 
-2.  Install dependencies:
+2. Install dependencies:
+
     ```bash
     npm install
     ```
 
 ### Configuration
 
-1.  Create a `.env` file in the root directory by copying the example file:
+1. Create a `.env` file in the root directory by copying the example file:
+
     ```bash
     cp .env.example .env
     ```
 
-2.  Open the `.env` file and add your credentials:
+2. Open the `.env` file and add your credentials:
+
     ```bash
     # Your Telegram Bot token from @BotFather
     TELEGRAM_BOT_TOKEN=your_telegram_bot_token
@@ -119,47 +126,57 @@ Follow these instructions to get a copy of the project up and running on your lo
 
 ## 💡 Usage
 
-1.  **Start your tunneling service** to expose your local port. For example, using `ngrok`:
+1. **Start your tunneling service** to expose your local port. For example, using `ngrok`:
+
     ```bash
     ngrok http 3300
     ```
+
     Copy the HTTPS forwarding URL provided by `ngrok` into the `WEBHOOK_URL` variable in your `.env` file.
 
-2.  **Start the bot** in development mode:
+2. **Start the bot** in development mode:
+
     ```bash
     npm run dev
     ```
+
     `nodemon` will watch for any changes in the `src` directory and automatically restart the bot.
 
-3.  **Interact with the bot** in Telegram:
-    -   `/start` - Get a welcome message and instructions.
-    -   `/meme [name]` - Search for a specific meme (e.g., `/meme Distracted Boyfriend`).
-    -   `/blank [name]` - Get a blank meme template (e.g., `/blank Drake hotline bling`).
+3. **Interact with the bot** in Telegram:
+
+    - `/start` - Get a welcome message and instructions.
+    - `/meme [name]` - Search for a specific meme (e.g., `/meme Distracted Boyfriend`).
+    - `/blank [name]` - Get a blank meme template (e.g., `/blank Drake hotline bling`).
 
 ---
 
 ## 📂 Project Structure
 
-```
+```bash
 MemeStream-Agent/
-├── src/
-│   ├── bot/
-│   │   ├── core/               # Core bot logic
-│   │   │   ├── bot.ts          # Main bot initialization
-│   │   │   ├── browser.ts      # Playwright browser management
-│   │   │   ├── handlers.ts     # Telegram command handlers
-│   │   │   └── server.ts       # Express server and webhook
-│   │   └── utils.ts            # Utility functions for the bot
-│   └── meme-generator/         # Meme agent and tools
-│       ├── agents/
-│       │   └── memegeneratorAgent.ts
-│       ├── tools/
-│       │   └── meme-generator-tools.ts
-│       └── ...
-├── .env.example
-├── Dockerfile
-├── package.json
-└── README.md
+├── .github/                # GitHub Actions workflows
+├── dist/                   # Compiled TypeScript files
+├── src/                    # Source code
+│   ├── bot/                # Telegram bot logic
+│   │   ├── core/           # Core bot functionalities
+│   │   ├── types/          # TypeScript types for the bot
+│   │   └── utils/          # Utility functions for the bot
+│   └── meme-generator/     # Meme agent and tools
+│       ├── agents/         # AI agent for meme generation
+│       ├── tools/          # Web scraping and other tools
+│       ├── types/          # TypeScript types for the meme generator
+│       └── utils/          # Utility functions for the meme generator
+├── tests/                  # Test files
+├── .dockerignore           # Docker ignore file
+├── .env.example            # Example environment variables
+├── .gitignore              # Git ignore file
+├── Dockerfile              # Docker configuration
+├── eslint.config.ts        # ESLint configuration
+├── jest.config.mjs         # Jest configuration
+├── nodemon.json            # Nodemon configuration
+├── package.json            # Project dependencies and scripts
+├── README.md               # This file
+└── tsconfig.json           # TypeScript configuration
 ```
 
 ---
@@ -168,11 +185,11 @@ MemeStream-Agent/
 
 Contributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
 
-1.  Fork the Project
-2.  Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3.  Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4.  Push to the Branch (`git push origin feature/AmazingFeature`)
-5.  Open a Pull Request
+1. Fork the Project
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
 ---
 
@@ -184,7 +201,7 @@ Distributed under the ISC License. See `LICENSE` for more information.
 
 ## 📞 Contact
 
-Patrick Patoski - [@patrickpatoski](https://twitter.com/patrickpatoski)
+Patrick Patoski - [@patrickpatoski](https://twitter.com/codesbypatrick)
 
 Project Link: [https://github.com/Patoski-patoski/MemeStream-Agent](https://github.com/Patoski-patoski/MemeStream-Agent)
 
