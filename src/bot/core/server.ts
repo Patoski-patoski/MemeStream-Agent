@@ -1,7 +1,6 @@
 // src/bot/core/server.ts
 import express, { Request, Response } from 'express';
 import dotenv from 'dotenv';
-import { getBrowser } from './browser.js';
 import http from 'http';
 import TelegramBot from 'node-telegram-bot-api';
 

@@ -37,7 +37,6 @@ describe('Server', () => {
             expect(response.body).toEqual({
                 status: 'OK',
                 timestamp: expect.any(String),
-                browser: expect.any(String),
             });
         });
 
@@ -48,7 +47,6 @@ describe('Server', () => {
             expect(response.body).toEqual({
                 status: 'OK',
                 timestamp: expect.any(String),
-                browser: 'Not Ready',
             });
         });
     });
