@@ -42,7 +42,8 @@ async function performSearch(page: Page, memeName: string): Promise<void> {
   await searchInput.fill(memeName);
   await page.waitForTimeout(TIMEOUTS.SEARCH_WAIT);
 
-  // Single Enter press should be sufficient
+  // Double Enter press for speed
+  await searchInput.press('Enter');
   await searchInput.press('Enter');
   await page.waitForTimeout(TIMEOUTS.SEARCH_WAIT);
 }
@@ -114,8 +115,8 @@ async function scrollToLoadContent(page: Page): Promise<void> {
   await page.evaluate(async () => {
     return new Promise<void>((resolve) => {
       let totalHeight = 0;
-      const distance = 500; // Smaller distance for smoother scrolling
-      const scrollDelay = 200; // Reduced delay
+      const distance = 500; 
+      const scrollDelay = 300; 
 
       const timer = setInterval(() => {
         window.scrollBy(0, distance);
@@ -147,13 +148,13 @@ export async function scrapeMemeImagesFromPage(
     });
 
     // Brief wait for initial content
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(TIMEOUTS.PAGE_LOAD);
 
     // Scroll to load all images
     await scrollToLoadContent(page);
 
     // Final wait for images to load
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(TIMEOUTS.ELEMENT_WAIT);
 
     // Extract meme image data
     const memeImages = await extractMemeImageData(page);

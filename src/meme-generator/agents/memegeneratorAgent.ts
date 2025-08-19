@@ -290,21 +290,18 @@ export async function runMemeAgent(
             return scrapedImages;
         })();
 
-        // Wait for both operations
-        const [fullOriginStory, scrapedImagesResult] = await Promise.all([
-            originStoryPromise,
-            scrapedImagesPromise
-        ]);
+        // Wait for the origin story first, as it's faster
+        originStory = await originStoryPromise;
 
-        originStory = fullOriginStory;
-        scrapedImages = scrapedImagesResult;
-
-        console.log('💾 Memory after operations:', getMemoryUsage());
-
-        // Send origin story immediately
+        // Send origin story immediately to improve user experience
         if (responseHandler && originStory) {
             await responseHandler.sendUpdate(originStory);
         }
+
+        // Now, wait for the image scraping to complete
+        scrapedImages = await scrapedImagesPromise;
+
+        console.log('💾 Memory after operations:', getMemoryUsage());
 
         // --- Step 4: Generate final summary with fallback ---
         console.log(`📊 Step 4: Generating final summary`);
