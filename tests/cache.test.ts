@@ -74,7 +74,7 @@ describe('MemeCache Singleton', () => {
       expect(cached?.blankTemplateUrl).toBe(memeData.blankTemplateUrl);
       expect(mockRedisInstance.setex).toHaveBeenCalledWith(
         `meme:${memeName}`,
-        3600, // 1 hour
+        10800, // 3 hours
         expect.any(String)
       );
     });
@@ -97,7 +97,7 @@ describe('MemeCache Singleton', () => {
       expect(cachedUrl).toBe(memeUrl);
       expect(mockRedisInstance.setex).toHaveBeenCalledWith(
         `blank_meme:${memeName}`,
-        86400, // 24 hours
+        604800, // 7 days
         memeUrl
       );
     });
@@ -123,7 +123,7 @@ describe('MemeCache Singleton', () => {
       expect(retrievedContext).toEqual(expect.objectContaining({ memeName: context.memeName }));
       expect(mockRedisInstance.setex).toHaveBeenCalledWith(
         `user_context:${chatId}`,
-        1800, // 30 minutes
+        3600, // 30 minutes
         expect.any(String)
       );
       expect(mockRedisInstance.setex).toHaveBeenCalledTimes(2);
