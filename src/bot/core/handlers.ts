@@ -415,7 +415,9 @@ export const handleBlankMemeCommand = (bot: TelegramBot) => {
         let page: Page | undefined;
         try {
             page = await browser.newPage();
+            console.time('searchMemeAndGetFirstLink');
             const memeSearchResult = await searchMemeAndGetFirstLink(page, memeName);
+            console.timeEnd('searchMemeAndGetFirstLink');
 
             if (!memeSearchResult || !memeSearchResult.memeBlankImgUrl) {
                 await bot.editMessageText(
