@@ -1,22 +1,28 @@
 // src/bot/core/cache.ts
 import { Redis } from 'ioredis';
-
+// import axios from 'axios';
 import {
     MemeContext,
     CachedMemeData,
     PopularMemesCache,
-    CacheStats
+    CacheStats,
+    ImgflipApiResponse,
+    ImgflipMeme
 } from '../types/types.js';
+
+// const IMGFLIP_API_URL = 'https://api.imgflip.com/get_memes';
 
 class MemeCache {
     private redis: Redis;
     private readonly CACHE_TTL = 3 * 60 * 60; // 3 hour
+    private readonly API_CACHE_TTL = 2 * 60 * 60; // 2 hours
     private readonly CONTEXT_TTL = 60 * 60; // 1 hour for user contexts
     private readonly POPULAR_MEMES_TTL = 1 * 60 * 60; // 1 hours
     private readonly BLANK_MEMES_TTL =  7 * 24 * 60 * 60; // 1 week
     private readonly MEME_KEY_PREFIX = 'meme:';
     private readonly POPULAR_KEY = 'popular_memes';
     private readonly USER_CONTEXT_PREFIX = 'user_context:';
+    private readonly API_MEMES_KEY = 'api_memes';
 
     constructor() {
         // Check if we have an Upstash URL (production) or local Redis (development)
@@ -74,6 +80,65 @@ class MemeCache {
         };
     }
 
+    // === IMGFLIP API CACHING ===
+    async getMemesFromCacheOrApi(): Promise<ImgflipMeme[]> {
+        const cacheKey = 'imgflip_api_memes';
+        const cacheExpiry = 24 * 60 * 60 * 1000; // 24 hours
+
+        try {
+            // Try to get from cache first
+            const cachedData = await this.redis.get(cacheKey);
+            if (cachedData) {
+                const parsed = JSON.parse(cachedData);
+                const isExpired = Date.now() - parsed.timestamp > cacheExpiry;
+
+                if (!isExpired) {
+                    console.log(`⚡ Using cached ImgFlip API data (${parsed.memes.length} memes)`);
+                    return parsed.memes;
+                }
+                console.log('🔄 Cached ImgFlip API data expired, fetching fresh data...');
+            } else {
+                console.log('🚀 No cached ImgFlip API data found, fetching for first time...');
+            }
+
+            // Fetch from API
+            const response = await fetch('https://api.imgflip.com/get_memes');
+            if (!response.ok) {
+                throw new Error(`ImgFlip API responded with status: ${response.status}`);
+            }
+
+            const apiData: ImgflipApiResponse = await response.json();
+            if (!apiData.success || !apiData.data?.memes) {
+                throw new Error('Invalid response from ImgFlip API');
+            }
+
+            // Cache the fresh data
+            const cacheData = {
+                memes: apiData.data.memes,
+                timestamp: Date.now()
+            };
+
+            await this.redis.setex(cacheKey, Math.floor(cacheExpiry / 1000), JSON.stringify(cacheData));
+            console.log(`💾 Cached ${apiData.data.memes.length} memes from ImgFlip API`);
+
+            return apiData.data.memes;
+
+        } catch (error) {
+            console.error('❌ Error fetching memes from API:', error);
+
+            // Try to return stale cache data as fallback
+            const cachedData = await this.redis.get(cacheKey);
+            if (cachedData) {
+                const parsed = JSON.parse(cachedData);
+                console.log(`⚠️ Using stale cached data as fallback (${parsed.memes.length} memes)`);
+                return parsed.memes;
+            }
+
+            // Return empty array if no cache available
+            console.log('💥 No cached data available, returning empty array');
+            return [];
+        }
+    }
     // === MEME DATA CACHING ===
     async getCachedMeme(memeName: string): Promise<CachedMemeData | null> {
         try {
@@ -404,6 +469,63 @@ Give me 5 different popular memes:`
         await this.redis.quit();
         console.log('🔌 Redis connection closed');
     }
+
+    /**
+     * Search for a meme in cached API data with fuzzy matching
+     */
+    async findMemeInCache(searchTerm: string): Promise<ImgflipMeme | null> {
+        const allMemes = await this.getMemesFromCacheOrApi();
+        const normalizedSearch = searchTerm.toLowerCase().trim();
+
+        // Exact match first
+        let foundMeme = allMemes.find(meme =>
+            meme.name.toLowerCase().trim() === normalizedSearch
+        );
+
+        if (foundMeme) {
+            console.log(`🎯 Exact match found: "${foundMeme.name}"`);
+            return foundMeme;
+        }
+
+        // Partial match
+        foundMeme = allMemes.find(meme =>
+            meme.name.toLowerCase().includes(normalizedSearch) ||
+            normalizedSearch.includes(meme.name.toLowerCase())
+        );
+
+        if (foundMeme) {
+            console.log(`📍 Partial match found: "${foundMeme.name}" for "${searchTerm}"`);
+            return foundMeme;
+        }
+
+        // Fuzzy matching with individual words
+        const searchWords = normalizedSearch.split(/\s+/).filter(word => word.length > 2);
+        if (searchWords.length > 0) {
+            foundMeme = allMemes.find(meme => {
+                const memeName = meme.name.toLowerCase();
+                return searchWords.some(word => memeName.includes(word));
+            });
+
+            if (foundMeme) {
+                console.log(`🔍 Fuzzy match found: "${foundMeme.name}" for "${searchTerm}"`);
+                return foundMeme;
+            }
+        }
+
+        console.log(`❌ No match found for "${searchTerm}" in ${allMemes.length} cached memes`);
+        return null;
+    }
+
+    async getMeme(memeName: string): Promise<MemeContext | null> {
+        const key = this.MEME_KEY_PREFIX + memeName.toLowerCase().trim();
+        const cached = await this.redis.get(key);
+        if (cached) {
+            console.log(`🎯 Cache HIT for meme "${memeName}"`);
+            return JSON.parse(cached);
+        }
+        return null;
+    }
 }
+
 
 export const memeCache = new MemeCache();

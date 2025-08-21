@@ -136,3 +136,11 @@ export function generateFallbackOriginStory(memeName: string): string {
 ⚡ *AI services will be back online soon for more detailed analysis.*`;
 }
 
+
+export function formatMemeNameForUrl(memeName: string): string {
+    return memeName
+        .trim()
+        .split(/[\s-]+/) // Split by spaces or hyphens
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()) // Capitalize first letter, rest lowercase
+        .join('-'); // Join with hyphens
+}

@@ -3,6 +3,7 @@ import express, { Request, Response } from 'express';
 import dotenv from 'dotenv';
 import http from 'http';
 import TelegramBot from 'node-telegram-bot-api';
+import { startBot } from './bot.js';
 
 if (process.env.NODE_ENV !== 'production') {
   dotenv.config();
@@ -34,11 +35,6 @@ app.get('/', (req: Request, res: Response) => {
     });
 });
 
-/**
- * Starts an Express.js server that listens for Telegram webhook updates.
- * @param {object} bot - A Telegram Bot instance with a processUpdate method.
- * @returns {Promise<http.Server>} A promise that resolves with the server instance.
- */
 export const startServer = (bot: TelegramBot): Promise<http.Server> => {
     return new Promise((resolve) => {
         const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
@@ -60,10 +56,6 @@ export const startServer = (bot: TelegramBot): Promise<http.Server> => {
     });
 };
 
-/**
- * Closes the Express.js server gracefully.
- * @returns {Promise<void>} A promise that resolves when the server is closed.
- */
 export const closeServer = (): Promise<void> => {
     return new Promise((resolve) => {
         if (server && server.listening) {
@@ -75,3 +67,22 @@ export const closeServer = (): Promise<void> => {
         }
     });
 };
+
+// Main application entry point
+async function main() {
+    try {
+        console.log("Initializing bot...");
+        const bot = await startBot();
+        if (bot) {
+            await startServer(bot);
+            console.log("Application started successfully.");
+        } else {
+            throw new Error("Bot initialization failed.");
+        }
+    } catch (error) {
+        console.error("Fatal error during application startup:", error);
+        process.exit(1);
+    }
+}
+
+main();

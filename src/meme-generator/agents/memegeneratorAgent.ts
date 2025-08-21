@@ -28,7 +28,8 @@ import {
     isRetryableError,
     calculateDelay,
     generateFallbackMemeInfo,
-    generateFallbackOriginStory
+    generateFallbackOriginStory,
+    formatMemeNameForUrl
 } from "../utils/utils.js";
 
 import { memeCache } from "../../bot/core/cache.js";
@@ -87,53 +88,59 @@ async function callAIWithRetry<T>(
  * @param {string} memeNameInput The name of the meme to search for.
  * @param {ResponseHandler} [responseHandler] An optional response handler to send updates to the user.
  * @param {string} [requestId] An optional request ID to identify the session.
+ * @param {boolean} [isDirectUrl] An optional flag to indicate that the memeNameInput is a direct URL slug.
  * @returns {Promise<{summary: string, images: MemeImageData[], memePageUrl: string, blankMemeUrl: string, originStory: string}>} A promise resolving to an object with the summary, images, meme page URL, blank meme URL, and origin story of the meme.
  */
 export async function runMemeAgent(
     memeNameInput: string,
     responseHandler?: ResponseHandler,
-    requestId?: string
+    requestId?: string,
+    isDirectUrl: boolean = false
 ) {
     const sessionId = requestId || `meme_${Date.now()}`;
+    const formattedMemeName = formatMemeNameForUrl(memeNameInput);
     let page: Page | undefined;
 
     try {
-        console.log(`\n🚀 Starting meme agent for: "${memeNameInput}"`);
+        console.log(`
+🚀 Starting meme agent for: "${formattedMemeName}" ${isDirectUrl ? '(direct URL mode)' : ''}`);
         console.log('💾 Memory before start:', getMemoryUsage());
 
-        // 🎯 STEP 1: Check cache first
-        const cachedData = await memeCache.getCachedMeme(memeNameInput);
+        // 🎯 STEP 1: Check cache first (unless it's a direct URL request)
+        if (!isDirectUrl) {
+            const cachedData = await memeCache.getCachedMeme(formattedMemeName);
 
-        if (cachedData && responseHandler) {
-            console.log(`⚡ Serving cached data for "${memeNameInput}"`);
+            if (cachedData && responseHandler) {
+                console.log(`⚡ Serving cached data for "${formattedMemeName}"`);
 
-            // Send cached origin story
-            if (cachedData.originStory) {
-                await responseHandler.sendUpdate(cachedData.originStory);
+                // Send cached origin story
+                if (cachedData.originStory) {
+                    await responseHandler.sendUpdate(cachedData.originStory);
+                }
+
+                // Send cached summary
+                if (cachedData.summary) {
+                    await responseHandler.sendUpdate(cachedData.summary);
+                }
+
+                // Send cached images
+                if (cachedData.images?.length > 0) {
+                    await responseHandler.sendImages(cachedData.images);
+                } else {
+                    await responseHandler.sendUpdate(
+                        `📷 *No images found for preview*\n\n` +
+                        `🎨 But you can use the blank template link above to create your own memes!`
+                    );
+                }
+
+                return {
+                    summary: cachedData.summary || '',
+                    images: cachedData.images || [],
+                    memePageUrl: cachedData.memePageUrl,
+                    blankMemeUrl: cachedData.blankTemplateUrl,
+                    originStory: cachedData.originStory || ''
+                };
             }
-
-            // Send cached summary
-            if (cachedData.summary) {
-                await responseHandler.sendUpdate(cachedData.summary);
-            }
-
-            // Send cached images
-            if (cachedData.images?.length > 0) {
-                await responseHandler.sendImages(cachedData.images);
-            } else {
-                await responseHandler.sendUpdate(
-                    `📷 *No images found for preview*\n\n` +
-                    `🎨 But you can use the blank template link above to create your own memes!`
-                );
-            }
-
-            return {
-                summary: cachedData.summary || '',
-                images: cachedData.images || [],
-                memePageUrl: cachedData.memePageUrl,
-                blankMemeUrl: cachedData.blankTemplateUrl,
-                originStory: cachedData.originStory || ''
-            };
         }
 
         // Get optimized page instance
@@ -145,64 +152,105 @@ export async function runMemeAgent(
         let originStory = "";
         let finalSummary = "";
 
-        // --- Step 1: Direct meme search (bypass AI if possible) ---
-        console.log(`🔍 Step 1: Searching for "${memeNameInput}"`);
+        if (isDirectUrl) {
+            // For /meme command - use direct URL approach for faster scraping
+            const directUrl = `https://imgflip.com/meme/${formattedMemeName}`;
+            console.log(`✅ Using direct URL approach: ${directUrl}`);
 
-        try {
-            // Try AI-guided search first
-            const contents: { role: string, parts: ContentPart[] }[] = [
-                {
-                    role: "user",
-                    parts: [{
-                        text: `You are a helpful meme generator agent. Your task is to find a meme,
-                             extract its URL, and scrape its associated images. Present results in a concise,
-                             well-formatted summary.`
-                    }]
-                },
-                {
-                    role: "user",
-                    parts: [{
-                        text: `Please find the meme named "${memeNameInput}" and show me 
-                            its main URL and associated images.`
-                    }]
-                }
-            ];
-
-            const resultStep1 = await callAIWithRetry(
-                () => ai.models.generateContent({
-                    model: modelName,
-                    contents,
-                    config: { tools }
-                }),
-                "AI-guided meme search"
-            );
-
-            if (resultStep1.candidates?.[0]?.content) {
-                contents.push(resultStep1.candidates[0].content as {
-                    role: string; parts: ContentPart[];
-                });
-
-                const functionCallStep1 = resultStep1.functionCalls?.[0];
-
-                if (functionCallStep1?.name === "search_meme") {
-                    console.log(`🌐 Step 2: Executing AI-guided meme search`);
-                    memeSearchResult = await toolFunctions[functionCallStep1.name](
-                        page,
-                        functionCallStep1.args!.memeName as string
-                    ) as MemeSearchResult;
-                }
-            }
-        } catch {
-            console.log(`⚠️ AI-guided search failed, falling back to direct search...`);
-
-            // Fallback: Direct search without AI
-            console.log(`🔍 Step 2: Direct meme search (AI fallback)`);
+            // Try to extract blank template URL from the direct page
             try {
-                memeSearchResult = await searchMemeAndGetFirstLink(page, memeNameInput) as MemeSearchResult;
-                console.log(`✅ Direct search successful`);
-            } catch (directSearchError) {
-                console.error(`❌ Direct search also failed:`, directSearchError);
-                throw directSearchError;
+                await page.goto(directUrl, { waitUntil: 'domcontentloaded', timeout: 20000 });
+
+                // Check if page exists (not 404)
+                const pageTitle = await page.title();
+                if (pageTitle.includes('404') || pageTitle.includes('Not Found')) {
+                    console.log(`❌ Direct URL resulted in 404: ${directUrl}`);
+                    // Fall back to search method
+                    memeSearchResult = await searchMemeAndGetFirstLink(page, formattedMemeName) as MemeSearchResult;
+                } else {
+                    // Try to find the blank template URL on the direct page
+                    const blankTemplateUrl = await page.evaluate(() => {
+                        // Look for the blank template image
+                        const blankImg = document.querySelector('img[src*="i.imgflip.com"]');
+                        return blankImg ? (blankImg as HTMLImageElement).src : null;
+                    });
+
+                    if (blankTemplateUrl) {
+                        memeSearchResult = {
+                            memePageFullUrl: directUrl,
+                            memeBlankImgUrl: blankTemplateUrl
+                        };
+                        console.log(`✅ Found blank template via direct method: ${blankTemplateUrl}`);
+                    } else {
+                        // Fall back to search if we can't find the blank template
+                        console.log(`⚠️ Could not find blank template on direct page, falling back to search`);
+                        memeSearchResult = await searchMemeAndGetFirstLink(page, formattedMemeName) as MemeSearchResult;
+                    }
+                }
+            } catch (directError) {
+                console.log(`⚠️ Direct URL approach failed, falling back to search:`, directError);
+                memeSearchResult = await searchMemeAndGetFirstLink(page, formattedMemeName) as MemeSearchResult;
+            }
+        } else {
+            // Regular search approach for other commands
+            console.log(`🔍 Step 1: Searching for "${formattedMemeName}"`);
+
+            try {
+                // Try AI-guided search first
+                const contents: { role: string, parts: ContentPart[] }[] = [
+                    {
+                        role: "user",
+                        parts: [{
+                            text: `You are a helpful meme generator agent. Your task is to find a meme,
+                                 extract its URL, and scrape its associated images. Present results in a concise,
+                                 well-formatted summary.`
+                        }]
+                    },
+                    {
+                        role: "user",
+                        parts: [{
+                            text: `Please find the meme named "${formattedMemeName}" and show me 
+                                its main URL and associated images.`
+                        }]
+                    }
+                ];
+
+                const resultStep1 = await callAIWithRetry(
+                    () => ai.models.generateContent({
+                        model: modelName,
+                        contents,
+                        config: { tools }
+                    }),
+                    "AI-guided meme search"
+                );
+
+                if (resultStep1.candidates?.[0]?.content) {
+                    contents.push(resultStep1.candidates[0].content as {
+                        role: string; parts: ContentPart[];
+                    });
+
+                    const functionCallStep1 = resultStep1.functionCalls?.[0];
+
+                    if (functionCallStep1?.name === "search_meme") {
+                        console.log(`🌐 Step 2: Executing AI-guided meme search`);
+                        memeSearchResult = await toolFunctions[functionCallStep1.name](
+                            page,
+                            functionCallStep1.args!.memeName as string
+                        ) as MemeSearchResult;
+                    }
+                }
+            } catch {
+                console.log(`⚠️ AI-guided search failed, falling back to direct search...`);
+
+                // Fallback: Direct search without AI
+                console.log(`🔍 Step 2: Direct meme search (AI fallback)`);
+                try {
+                    memeSearchResult = await searchMemeAndGetFirstLink(page, formattedMemeName) as MemeSearchResult;
+                    console.log(`✅ Direct search successful`);
+                } catch (directSearchError) {
+                    console.error(`❌ Direct search also failed:`, directSearchError);
+                    throw directSearchError;
+                }
             }
         }
 
@@ -210,7 +258,7 @@ export async function runMemeAgent(
         if (!memeSearchResult?.memePageFullUrl) {
             if (responseHandler) {
                 await responseHandler.sendUpdate(
-                    `❌ *Could not find meme: "${memeNameInput}"*\n\n` +
+                    `❌ *Could not find meme: "${formattedMemeName}"*\n\n` +
                     `🔍 Please try:\n` +
                     `• Check spelling\n` +
                     `• Use popular meme names (Drake, Distracted Boyfriend, etc.)\n` +
@@ -241,7 +289,7 @@ export async function runMemeAgent(
                     },
                     {
                         role: "user",
-                        parts: [{ text: `Tell me the fascinating origin story of the "${memeNameInput}" meme.` }]
+                        parts: [{ text: `Tell me the fascinating origin story of the "${formattedMemeName}" meme.` }]
                     }
                 ];
 
@@ -271,15 +319,16 @@ export async function runMemeAgent(
 
             } catch {
                 console.log(`⚠️ AI origin story failed, using fallback...`);
-                return generateFallbackOriginStory(memeNameInput);
+                return generateFallbackOriginStory(formattedMemeName);
             }
         })();
 
         // Image scraping (this doesn't depend on AI)
+        console.time('Meme Scraping');
         const scrapedImagesPromise = (async () => {
             console.log(`🖼️ Scraping images from: ${memeSearchResult!.memePageFullUrl}`);
             if (memeSearchResult!.memePageFullUrl === TAG_MEME) {
-                throw new MemeNotFoundError(`Unable to find the "${memeNameInput}" meme`);
+                throw new MemeNotFoundError(`Unable to find the "${formattedMemeName}" meme`);
             }
 
             const scrapedImages = await toolFunctions.scrape_meme_images(
@@ -300,6 +349,7 @@ export async function runMemeAgent(
 
         // Now, wait for the image scraping to complete
         scrapedImages = await scrapedImagesPromise;
+        console.timeEnd('Meme Scraping');
 
         console.log('💾 Memory after operations:', getMemoryUsage());
 
@@ -348,16 +398,17 @@ Example format:
                 "Final summary generation"
             );
 
-            finalSummary = finalResult.text || generateFallbackMemeInfo(memeNameInput, memeSearchResult, scrapedImages);
+            finalSummary = finalResult.text || generateFallbackMemeInfo(formattedMemeName, memeSearchResult, scrapedImages);
             console.log("✅ AI summary generated successfully");
 
         } catch {
             console.log(`⚠️ AI summary failed, using fallback...`);
-            finalSummary = generateFallbackMemeInfo(memeNameInput, memeSearchResult, scrapedImages);
+            finalSummary = generateFallbackMemeInfo(formattedMemeName, memeSearchResult, scrapedImages);
         }
 
         // --- Step 5: Send results through response handler ---
         if (responseHandler) {
+            console.time('Display to Client');
             // Send the final summary
             if (finalSummary) {
                 await responseHandler.sendUpdate(finalSummary);
@@ -372,13 +423,14 @@ Example format:
                     `🎨 But you can still use the blank template link above to create your own memes!`
                 );
             }
+            console.timeEnd('Display to Client');
         }
         // After successful processing, cache the results
         if (memeSearchResult?.memePageFullUrl) {
-            await memeCache.cacheMeme(memeNameInput, {
+            await memeCache.cacheMeme(formattedMemeName, {
                 memePageUrl: memeSearchResult.memePageFullUrl,
                 blankTemplateUrl: memeSearchResult.memeBlankImgUrl as string,
-                memeName: memeNameInput,
+                memeName: formattedMemeName,
                 images: scrapedImages,
                 originStory: originStory,
                 summary: finalSummary,
@@ -386,7 +438,7 @@ Example format:
                 currentPage: 1,
             });
 
-            console.log(`💾 Cached results for "${memeNameInput}"`);
+            console.log(`💾 Cached results for "${formattedMemeName}"`);
         }
 
         return {
@@ -404,11 +456,18 @@ Example format:
         if (error instanceof MemeNotFoundError) {
             if (responseHandler) {
                 await responseHandler.sendUpdate(
-                    `❌ *Could not find meme: "${memeNameInput}"*\n\n` +
-                    `🔍 Please try:\n` +
-                    `• Check spelling\n` +
-                    `• Use popular meme names (Drake, Distracted Boyfriend, etc.)\n` +
-                    `• Try alternative names\n\n` +
+                    `❌ *Could not find meme: "${formattedMemeName}"*
+
+` +
+                    `🔍 Please try:
+` +
+                    `• Check spelling
+` +
+                    `• Use popular meme names (Drake, Distracted Boyfriend, etc.)
+` +
+                    `• Try alternative names
+
+` +
                     `💡 *Tip:* Search for well-known internet memes`
                 );
             }
@@ -423,18 +482,34 @@ Example format:
             await responseHandler.sendUpdate(
                 isAIOverload
                     ? `🤖 *AI Services Temporarily Busy*\n\n` +
-                    `⚡ The AI model is currently overloaded, but we're still working to get your meme data!\n\n` +
-                    `🔄 *What's happening:*\n` +
-                    `• Searching for "${memeNameInput}" using direct methods\n` +
-                    `• Gathering available templates and images\n` +
-                    `• Skipping AI analysis to avoid delays\n\n` +
+                    `⚡ The AI model is currently overloaded, but we're still working to get your meme data!
+
+` +
+                    `🔄 *What's happening:*
+` +
+                    `• Searching for "${formattedMemeName}" using direct methods
+` +
+                    `• Gathering available templates and images
+` +
+                    `• Skipping AI analysis to avoid delays
+
+` +
                     `💡 *Please wait a moment...* We'll get you the essential meme info!`
-                    : `❌ *Processing Error*\n\n` +
-                    `🔧 Something went wrong while processing "${memeNameInput}"\n\n` +
-                    `💡 *Suggestions:*\n` +
-                    `• Try a different meme name\n` +
-                    `• Check if the meme name is spelled correctly\n` +
-                    `• Use well-known meme names\n\n` +
+                    : `❌ *Processing Error*
+
+` +
+                    `🔧 Something went wrong while processing "${formattedMemeName}"
+
+` +
+                    `💡 *Suggestions:*
+` +
+                    `• Try a different meme name
+` +
+                    `• Check if the meme name is spelled correctly
+` +
+                    `• Use well-known meme names
+
+` +
                     `🔄 Feel free to try again!`
             );
         }
@@ -444,12 +519,12 @@ Example format:
             try {
                 console.log(`🚨 AI overload detected, attempting emergency direct search...`);
 
-                const emergencyResult = await searchMemeAndGetFirstLink(page, memeNameInput) as MemeSearchResult;
+                const emergencyResult = await searchMemeAndGetFirstLink(page, formattedMemeName) as MemeSearchResult;
 
                 if (emergencyResult?.memePageFullUrl) {
                     const emergencyImages = await scrapeMemeImagesFromPage(page, emergencyResult.memePageFullUrl) as MemeImageData[];
-                    const fallbackSummary = generateFallbackMemeInfo(memeNameInput, emergencyResult, emergencyImages);
-                    const fallbackOrigin = generateFallbackOriginStory(memeNameInput);
+                    const fallbackSummary = generateFallbackMemeInfo(formattedMemeName, emergencyResult, emergencyImages);
+                    const fallbackOrigin = generateFallbackOriginStory(formattedMemeName);
 
                     if (responseHandler) {
                         await responseHandler.sendUpdate(fallbackOrigin);
@@ -459,6 +534,18 @@ Example format:
                             await responseHandler.sendImages(emergencyImages);
                         }
                     }
+
+                    await memeCache.cacheMeme(formattedMemeName, {
+                        memePageUrl: emergencyResult.memePageFullUrl,
+                        blankTemplateUrl: emergencyResult.memeBlankImgUrl as string,
+                        memeName: formattedMemeName,
+                        images: emergencyImages,
+                        originStory: fallbackOrigin,
+                        summary: fallbackSummary,
+                        lastRequestTime: Date.now(),
+                        currentPage: 1,
+                    });
+                    console.log(`💾 Cached emergency results for "${formattedMemeName}"`);
 
                     return {
                         summary: fallbackSummary,

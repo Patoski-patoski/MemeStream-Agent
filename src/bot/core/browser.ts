@@ -144,8 +144,8 @@ export const getBrowser = () => globalBrowser;
 export const getPageCount = () => activePagesMap.size;
 
 // Enhanced cleanup with memory monitoring
-export const gracefulShutdown = async (signal: string) => {
-    console.log(`\n📡 Received ${signal}. Shutting down browser...`);
+export const closeBrowser = async () => {
+    console.log(`\n📡 Shutting down browser...`);
 
     try {
         // Close all active pages first

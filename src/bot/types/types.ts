@@ -74,3 +74,53 @@ export interface CacheStats {
     memoryUsage: NodeJS.MemoryUsage;
   };
 }
+
+// === JOB QUEUE TYPES ===
+
+// Data for a meme generation job
+export interface MemeJobData {
+  chatId: number;
+  memeName: string;
+  loadingMessageId: number;
+}
+
+// Result of a meme generation job
+export interface MemeJobResult {
+  success: boolean;
+  url?: string;
+  error?: string;
+}
+
+// === IMGFLIP API TYPES ===
+
+export interface ImgflipMeme {
+  id: string;
+  name: string;
+  url: string;
+  width: number;
+  height: number;
+  box_count: number;
+  captions: number;
+}
+
+export interface ImgflipApiResponse {
+  success: boolean;
+  data: {
+    memes: ImgflipMeme[];
+  };
+}
+
+export interface ImgflipMeme {
+  id: string;
+  name: string;
+  url: string;
+  width: number;
+  height: number;
+  box_count: number;
+  captions: number;
+}
+
+export interface CachedImgflipData {
+  memes: ImgflipMeme[];
+  timestamp: number;
+}

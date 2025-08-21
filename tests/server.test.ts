@@ -2,21 +2,18 @@ import { jest, describe, it, expect, beforeEach, afterAll, afterEach } from '@je
 import request from 'supertest';
 import { app, startServer, closeServer } from '../src/bot/core/server';
 import TelegramBot from 'node-telegram-bot-api';
-// import http from 'http';
-
-jest.mock('../src/bot/core/browser', () => {
-    const originalModule = jest.requireActual('../src/bot/core/browser') as object;
-    return {
-        __esModule: true,
-        ...originalModule,
-        getBrowser: jest.fn(),
-    };
-});
+import * as browser from '../src/bot/core/browser';
 
 
 describe('Server', () => {
+    beforeEach(() => {
+        jest.spyOn(browser, 'getBrowser').mockImplementation(() => ({} as any));
+        jest.spyOn(browser, 'closeBrowser').mockImplementation(() => Promise.resolve());
+    });
+
     afterEach(async () => {
         await closeServer();
+        jest.restoreAllMocks();
     });
 
     describe('GET /health', () => {

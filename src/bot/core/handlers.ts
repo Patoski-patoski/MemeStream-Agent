@@ -6,7 +6,7 @@ import { runMemeAgent } from '../../meme-generator/agents/memegeneratorAgent.js'
 import { searchMemeAndGetFirstLink } from '../../meme-generator/tools/meme-generator-tools.js';
 import { ProgressTracker } from '../types/types.js';
 import {
-    progressMessages,
+    // progressMessages,
     updateProgress,
     constructPageUrl
 } from '../utils/utils.js';
@@ -15,234 +15,234 @@ import { memeCache } from './cache.js';
 
 const MEME_URL = process.env.MEME_URL;
 
-// Helper function to trigger full meme search
-const triggerFullMemeSearch = async (bot: TelegramBot, chatId: number, memeName: string) => {
-    const browser = getBrowser();
-    if (!browser) {
-        await bot.sendMessage(chatId,
-            '🚀 *Bot is starting up...*\n\n' +
-            '⚙️ Initializing browser engine...\n' +
-            '⏳ Please try again in a moment!',
-            { parse_mode: 'Markdown' }
-        );
-        return;
-    }
+// // Helper function to trigger full meme search
+// const triggerFullMemeSearch = async (bot: TelegramBot, chatId: number, memeName: string) => {
+//     const browser = getBrowser();
+//     if (!browser) {
+//         await bot.sendMessage(chatId,
+//             '🚀 *Bot is starting up...*\n\n' +
+//             '⚙️ Initializing browser engine...\n' +
+//             '⏳ Please try again in a moment!',
+//             { parse_mode: 'Markdown' }
+//         );
+//         return;
+//     }
 
-    const initialMessage = await bot.sendMessage(chatId, progressMessages[0]);
+//     const initialMessage = await bot.sendMessage(chatId, progressMessages[0]);
 
-    const tracker: ProgressTracker = {
-        chatId,
-        messageId: initialMessage.message_id,
-        currentStep: 1,
-        totalSteps: 6,
-        startTime: Date.now()
-    };
+//     const tracker: ProgressTracker = {
+//         chatId,
+//         messageId: initialMessage.message_id,
+//         currentStep: 1,
+//         totalSteps: 6,
+//         startTime: Date.now()
+//     };
 
-    const progressInterval = setInterval(async () => {
-        if (tracker.currentStep < tracker.totalSteps) {
-            tracker.currentStep++;
-            await updateProgress(bot, tracker, progressMessages[tracker.currentStep - 1]);
-        }
-    }, 10000);
+//     const progressInterval = setInterval(async () => {
+//         if (tracker.currentStep < tracker.totalSteps) {
+//             tracker.currentStep++;
+//             await updateProgress(bot, tracker, progressMessages[tracker.currentStep - 1]);
+//         }
+//     }, 10000);
 
-    const patienceTimeout = setTimeout(async () => {
-        try {
-            const patientMessage = await bot.sendMessage(chatId,
-                '🤖 *Hang tight! I\'m working hard on your request* 🤖\n\n' +
-                '🔍 Currently processing:\n' +
-                '• 🎭 Searching meme databases\n' +
-                '• 📚 Gathering origin stories\n' +
-                '• 🖼️ Collecting image examples\n' +
-                '• ✨ Organizing results\n\n' +
-                '⏱️ *Average processing time: 15-20 seconds*\n' +
-                '🎯 Your results will be worth the wait!',
-                { parse_mode: 'Markdown' }
-            );
+//     const patienceTimeout = setTimeout(async () => {
+//         try {
+//             const patientMessage = await bot.sendMessage(chatId,
+//                 '🤖 *Hang tight! I\'m working hard on your request* 🤖\n\n' +
+//                 '🔍 Currently processing:\n' +
+//                 '• 🎭 Searching meme databases\n' +
+//                 '• 📚 Gathering origin stories\n' +
+//                 '• 🖼️ Collecting image examples\n' +
+//                 '• ✨ Organizing results\n\n' +
+//                 '⏱️ *Average processing time: 15-20 seconds*\n' +
+//                 '🎯 Your results will be worth the wait!',
+//                 { parse_mode: 'Markdown' }
+//             );
 
-            // Schedule the message to be deleted after 45 seconds
-            setTimeout(async () => {
-                try {
-                    if (patientMessage) {
-                        await bot.deleteMessage(chatId, patientMessage.message_id);                        
-                    }
-                } catch (deleteError) {
-                    console.error('Error deleting patience message:', deleteError);
-                }
-            }, 45000); 
+//             // Schedule the message to be deleted after 45 seconds
+//             setTimeout(async () => {
+//                 try {
+//                     if (patientMessage) {
+//                         await bot.deleteMessage(chatId, patientMessage.message_id);                        
+//                     }
+//                 } catch (deleteError) {
+//                     console.error('Error deleting patience message:', deleteError);
+//                 }
+//             }, 45000); 
 
-        } catch (error) {
-            console.error('Error sending patience message:', error);
-        }
-    }, 10000);
+//         } catch (error) {
+//             console.error('Error sending patience message:', error);
+//         }
+//     }, 10000);
 
 
-    let page: Page | undefined;
-    try {
-        page = await browser.newPage();
-        console.log(`Opened new page for full info request from chat ID: ${chatId}`);
+//     let page: Page | undefined;
+//     try {
+//         page = await browser.newPage();
+//         console.log(`Opened new page for full info request from chat ID: ${chatId}`);
 
-        const responseHandler = {
-            page,
-            async sendUpdate(text: string) {
-                try {
-                    if (text.includes("origin") || text.includes("Origin")) {
-                        const formattedText = text
-                            .replace(/\*\*/g, '*')
-                            .substring(0, 3500);
+//         const responseHandler = {
+//             page,
+//             async sendUpdate(text: string) {
+//                 try {
+//                     if (text.includes("origin") || text.includes("Origin")) {
+//                         const formattedText = text
+//                             .replace(/\*\*/g, '*')
+//                             .substring(0, 3500);
 
-                        await bot.sendMessage(chatId,
-                            `📚 *Meme Origin & History* 📚\n\n${formattedText}\n\n` +
-                            `🔍 *Still gathering more data for you...*`,
-                            { parse_mode: 'Markdown' }
-                        );
-                        return;
-                    }
+//                         await bot.sendMessage(chatId,
+//                             `📚 *Meme Origin & History* 📚\n\n${formattedText}\n\n` +
+//                             `🔍 *Still gathering more data for you...*`,
+//                             { parse_mode: 'Markdown' }
+//                         );
+//                         return;
+//                     }
 
-                    const summaryText = text
-                        .replace(/\*\*/g, '*')
-                        .replace(/Main Page URL:/g, '🌐 *Source Page:*')
-                        .replace(/Blank Template URL:/g, '🎨 *Blank Template:*')
-                        .replace(/Scraped Images:/g, '🖼️ *Image Collection:*')
-                        .substring(0, 3500);
+//                     const summaryText = text
+//                         .replace(/\*\*/g, '*')
+//                         .replace(/Main Page URL:/g, '🌐 *Source Page:*')
+//                         .replace(/Blank Template URL:/g, '🎨 *Blank Template:*')
+//                         .replace(/Scraped Images:/g, '🖼️ *Image Collection:*')
+//                         .substring(0, 3500);
 
-                    await bot.sendMessage(chatId,
-                        `📋 *Meme Summary* 📋\n\n${summaryText}`,
-                        { parse_mode: 'Markdown' }
-                    );
-                } catch (error) {
-                    console.error('Error sending formatted message:', error);
-                    await bot.sendMessage(chatId, text);
-                }
-            },
+//                     await bot.sendMessage(chatId,
+//                         `📋 *Meme Summary* 📋\n\n${summaryText}`,
+//                         { parse_mode: 'Markdown' }
+//                     );
+//                 } catch (error) {
+//                     console.error('Error sending formatted message:', error);
+//                     await bot.sendMessage(chatId, text);
+//                 }
+//             },
 
-            async sendImages(images: { alt: string; src: string }[]) {
-                const relevantImages = images.filter(img =>
-                    img.src.includes('http'));
+//             async sendImages(images: { alt: string; src: string }[]) {
+//                 const relevantImages = images.filter(img =>
+//                     img.src.includes('http'));
 
-                if (relevantImages.length === 0) {
-                    await bot.sendMessage(chatId,
-                        '📷 *No suitable images found for preview*\n\n' +
-                        'But you can use the blank template and source page links above! 🎨'
-                    );
-                    return;
-                }
+//                 if (relevantImages.length === 0) {
+//                     await bot.sendMessage(chatId,
+//                         '📷 *No suitable images found for preview*\n\n' +
+//                         'But you can use the blank template and source page links above! 🎨'
+//                     );
+//                     return;
+//                 }
 
-                await bot.sendMessage(chatId,
-                    `🖼️ *Image Preview Collection* (${relevantImages.length} images)\n\n` +
-                    `📸 Here are some popular examples of this meme`,
-                    { parse_mode: 'Markdown' }
-                );
+//                 await bot.sendMessage(chatId,
+//                     `🖼️ *Image Preview Collection* (${relevantImages.length} images)\n\n` +
+//                     `📸 Here are some popular examples of this meme`,
+//                     { parse_mode: 'Markdown' }
+//                 );
 
-                for (let i = 0; i < relevantImages.length; i++) {
-                    const image = relevantImages[i];
-                    try {
-                        const caption = `🎭 *Example ${i + 1}/${relevantImages.length}*\n\n` +
-                            `${image.alt.replace(/"/g, '').substring(0, 200)}` +
-                            (image.alt.length > 200 ? '...' : '');
+//                 for (let i = 0; i < relevantImages.length; i++) {
+//                     const image = relevantImages[i];
+//                     try {
+//                         const caption = `🎭 *Example ${i + 1}/${relevantImages.length}*\n\n` +
+//                             `${image.alt.replace(/"/g, '').substring(0, 200)}` +
+//                             (image.alt.length > 200 ? '...' : '');
 
-                        await bot.sendPhoto(chatId, image.src, {
-                            caption,
-                            parse_mode: 'Markdown'
-                        });
+//                         await bot.sendPhoto(chatId, image.src, {
+//                             caption,
+//                             parse_mode: 'Markdown'
+//                         });
 
-                        if (i < relevantImages.length - 1) {
-                            await new Promise(resolve => setTimeout(resolve, 1000));
-                        }
-                    } catch (error) {
-                        console.error(`Error sending image ${i + 1}:`, error);
-                    }
-                }
+//                         if (i < relevantImages.length - 1) {
+//                             await new Promise(resolve => setTimeout(resolve, 1000));
+//                         }
+//                     } catch (error) {
+//                         console.error(`Error sending image ${i + 1}:`, error);
+//                     }
+//                 }
 
-                const inlineKeyboard = {
-                    inline_keyboard: [
-                        [
-                            {
-                                text: '🎨 Get Blank Template',
-                                callback_data: `blank_template_${chatId}`
-                            },
-                            {
-                                text: '🔍 View More Templates',
-                                callback_data: `more_templates_${chatId}`
-                            }
-                        ],
-                        [
-                            {
-                                text: '✨ Create Your Own',
-                                url: `${MEME_URL}/${formatMemeNameForUrl(memeName)}`
-                            }
-                        ],
-                        [
-                            {
-                                text: '🔄 Search Another Meme',
-                                callback_data: `new_search_${chatId}`
-                            }
-                        ]
-                    ]
-                };
+//                 const inlineKeyboard = {
+//                     inline_keyboard: [
+//                         [
+//                             {
+//                                 text: '🎨 Get Blank Template',
+//                                 callback_data: `blank_template_${chatId}`
+//                             },
+//                             {
+//                                 text: '🔍 View More Templates',
+//                                 callback_data: `more_templates_${chatId}`
+//                             }
+//                         ],
+//                         [
+//                             {
+//                                 text: '✨ Create Your Own',
+//                                 url: `${MEME_URL}/${formatMemeNameForUrl(memeName)}`
+//                             }
+//                         ],
+//                         [
+//                             {
+//                                 text: '🔄 Search Another Meme',
+//                                 callback_data: `new_search_${chatId}`
+//                             }
+//                         ]
+//                     ]
+//                 };
 
-                const popularMemes = await memeCache.getPopularMemes();
-                const tipMessage = popularMemes.length > 0 
-                    ? `💡 *Popular searches:* ${popularMemes.join(', ')}`
-                    : `💡 *Popular searches:* Drake, Distracted Boyfriend, This is Fine`;
+//                 const popularMemes = await memeCache.getPopularMemes();
+//                 const tipMessage = popularMemes.length > 0 
+//                     ? `💡 *Popular searches:* ${popularMemes.join(', ')}`
+//                     : `💡 *Popular searches:* Drake, Distracted Boyfriend, This is Fine`;
 
-                await bot.sendMessage(chatId,
-                    '✅ *Meme search completed successfully!* ✅\n\n' +
-                    '🎨 Use the blank template to create your own\n' +
-                    '✨ Click "Create Your Own" to edit online\n' +
-                    '🔄 Search for another meme with `/meme [name]`\n\n' +
-                    tipMessage,
-                    {
-                        parse_mode: 'Markdown',
-                        reply_markup: inlineKeyboard
-                    }
-                );
-            }
-        };
+//                 await bot.sendMessage(chatId,
+//                     '✅ *Meme search completed successfully!* ✅\n\n' +
+//                     '🎨 Use the blank template to create your own\n' +
+//                     '✨ Click "Create Your Own" to edit online\n' +
+//                     '🔄 Search for another meme with `/meme [name]`\n\n' +
+//                     tipMessage,
+//                     {
+//                         parse_mode: 'Markdown',
+//                         reply_markup: inlineKeyboard
+//                     }
+//                 );
+//             }
+//         };
 
-        const response = await runMemeAgent(memeName, responseHandler);
+//         const response = await runMemeAgent(memeName, responseHandler);
 
-        if (response && response.memePageUrl && response.blankMemeUrl) {
-            await memeCache.setUserContext(chatId, {
-                memePageUrl: response.memePageUrl,
-                blankTemplateUrl: response.blankMemeUrl,
-                memeName: memeName,
-                currentPage: 1,
-                lastRequestTime: Date.now()
-            });
-        }
+//         if (response && response.memePageUrl && response.blankMemeUrl) {
+//             await memeCache.setUserContext(chatId, {
+//                 memePageUrl: response.memePageUrl,
+//                 blankTemplateUrl: response.blankMemeUrl,
+//                 memeName: memeName,
+//                 currentPage: 1,
+//                 lastRequestTime: Date.now()
+//             });
+//         }
 
-        clearTimeout(patienceTimeout);
-        clearInterval(progressInterval);
+//         clearTimeout(patienceTimeout);
+//         clearInterval(progressInterval);
 
-        tracker.currentStep = tracker.totalSteps;
-        await updateProgress(bot, tracker, "✅ Completed successfully!", "🎉");
+//         tracker.currentStep = tracker.totalSteps;
+//         await updateProgress(bot, tracker, "✅ Completed successfully!", "🎉");
 
-    } catch (error) {
-        console.error("Error processing full meme request:", error);
+//     } catch (error) {
+//         console.error("Error processing full meme request:", error);
 
-        clearTimeout(patienceTimeout);
-        clearInterval(progressInterval);
+//         clearTimeout(patienceTimeout);
+//         clearInterval(progressInterval);
 
-        await bot.editMessageText(
-            '❌ *Oops! Something went wrong* ❌\n\n' +
-            '🔧 There was an issue processing your request\n' +
-            '💡 Please try again with a different meme name\n\n' +
-            '🆘 If the problem persists, the meme might not be in our database',
-            {
-                chat_id: tracker.chatId,
-                message_id: tracker.messageId,
-                parse_mode: 'Markdown'
-            }
+//         await bot.editMessageText(
+//             '❌ *Oops! Something went wrong* ❌\n\n' +
+//             '🔧 There was an issue processing your request\n' +
+//             '💡 Please try again with a different meme name\n\n' +
+//             '🆘 If the problem persists, the meme might not be in our database',
+//             {
+//                 chat_id: tracker.chatId,
+//                 message_id: tracker.messageId,
+//                 parse_mode: 'Markdown'
+//             }
             
-        );
-        return;
-    } finally {
-        if (page) {
-            await page.close();
-            console.log(`Closed page for full info request from chat ID: ${chatId}`);
-        }
-    }
-};
+//         );
+//         return;
+//     } finally {
+//         if (page) {
+//             await page.close();
+//             console.log(`Closed page for full info request from chat ID: ${chatId}`);
+//         }
+//     }
+// };
 
 
 
@@ -355,7 +355,9 @@ export const handleBlankMemeCommand = (bot: TelegramBot) => {
             );
             return;
         }
+
         memeName = formatMemeNameForDisplay(memeName);
+
         // Create inline keyboard
         const inlineKeyboard = {
             inline_keyboard: [
@@ -378,8 +380,8 @@ export const handleBlankMemeCommand = (bot: TelegramBot) => {
             ]
         };
 
+        // Step 1: Check local cache first (fastest)
         const cachedUrl = await memeCache.getBlankMeme(memeName);
-
         if (cachedUrl) {
             await bot.sendPhoto(chatId, cachedUrl, {
                 caption: `🎨 *Blank Template: "${memeName}"*\n\n` +
@@ -387,22 +389,11 @@ export const handleBlankMemeCommand = (bot: TelegramBot) => {
                     `🔗 ${MEME_URL}/${formatMemeNameForUrl(memeName)}\n\n` +
                     `💡 *Tips:*\n` +
                     `• Right-click the image to save it\n` +
-                    `• Use the link above to add custom text` + 
-                 `• Click buttons below for more options`,
+                    `• Use the link above to add custom text\n` +
+                    `• Click buttons below for more options`,
                 parse_mode: 'Markdown',
                 reply_markup: inlineKeyboard
             });
-            return;
-        }
-
-        const browser = getBrowser();
-        if (!browser) {
-            bot.sendMessage(chatId,
-                '🚀 *Bot is starting up...*\n\n' +
-                '⚙️ Initializing browser engine...\n' +
-                '⏳ Please try again in a moment!',
-                { parse_mode: 'Markdown' }
-            );
             return;
         }
 
@@ -412,18 +403,65 @@ export const handleBlankMemeCommand = (bot: TelegramBot) => {
             { parse_mode: 'Markdown' }
         );
 
-        let page: Page | undefined;
         try {
-            page = await browser.newPage();
-            console.time('searchMemeAndGetFirstLink');
-            const memeSearchResult = await searchMemeAndGetFirstLink(page, memeName);
-            console.timeEnd('searchMemeAndGetFirstLink');
+            // Step 2: Check ImgFlip API cache (fast)
+            console.log(`🚀 Step 1: Checking ImgFlip API cache for "${memeName}"`);
+            const foundMeme = await memeCache.findMemeInCache(memeName);
 
-            if (!memeSearchResult || !memeSearchResult.memeBlankImgUrl) {
+            if (foundMeme) {
+                console.log(`✅ Found "${memeName}" in API cache as "${foundMeme.name}"`);
+
+                // Cache the blank meme for future requests
+                await memeCache.cacheBlankMeme(memeName, foundMeme.url);
+                if (memeName.toLowerCase() !== foundMeme.name.toLowerCase()) {
+                    await memeCache.cacheBlankMeme(foundMeme.name, foundMeme.url);
+                }
+
+                // Store context for inline keyboard actions
+                await memeCache.setUserContext(chatId, {
+                    memePageUrl: `https://imgflip.com/meme/${foundMeme.id}/${formatMemeNameForUrl(foundMeme.name)}`,
+                    blankTemplateUrl: foundMeme.url,
+                    memeName: foundMeme.name, // Use official name from API
+                    currentPage: 1,
+                    lastRequestTime: Date.now()
+                });
+
+                // Delete loading message and send result
+                await bot.deleteMessage(chatId, loadingMsg.message_id);
+
+                await bot.sendPhoto(chatId, foundMeme.url, {
+                    caption: `🎨 *Blank Template: "${foundMeme.name}"*\n\n` +
+                        `✨ *Create your own version:*\n` +
+                        `🔗 ${MEME_URL}/${formatMemeNameForUrl(foundMeme.name)}\n\n` +
+                        `💡 *Tips:*\n` +
+                        `• Right-click the image to save it\n` +
+                        `• Use the link above to add custom text\n` +
+                        `• Click buttons below for more options`,
+                    parse_mode: 'Markdown',
+                    reply_markup: inlineKeyboard
+                });
+                return;
+            }
+
+            // Step 3: Fall back to web scraping (slower)
+            console.log(`⚠️ "${memeName}" not found in API cache, falling back to web scraping`);
+
+            await bot.editMessageText(
+                `🔍 *Searching deeper...*\n\n` +
+                `🕵️‍♂️ Meme not in quick database, checking web sources...`,
+                {
+                    chat_id: chatId,
+                    message_id: loadingMsg.message_id,
+                    parse_mode: 'Markdown'
+                }
+            );
+
+            const browser = getBrowser();
+            if (!browser) {
                 await bot.editMessageText(
-                    '❌ *Blank template not found*\n\n' +
-                    `🔍 No blank template found for "${memeName}"\n` +
-                    '💡 Try a different meme name or check spelling',
+                    '🚀 *Bot is starting up...*\n\n' +
+                    '⚙️ Initializing browser engine...\n' +
+                    '⏳ Please try again in a moment!',
                     {
                         chat_id: chatId,
                         message_id: loadingMsg.message_id,
@@ -433,39 +471,63 @@ export const handleBlankMemeCommand = (bot: TelegramBot) => {
                 return;
             }
 
-            await memeCache.cacheBlankMeme(memeName, memeSearchResult.memeBlankImgUrl);
+            let page: Page | undefined;
+            try {
+                page = await browser.newPage();
+                const memeSearchResult = await searchMemeAndGetFirstLink(page, memeName);
 
-            // Store context for inline keyboard actions
-            await memeCache.setUserContext(chatId, {
-                memePageUrl: memeSearchResult.memePageFullUrl,
-                blankTemplateUrl: memeSearchResult.memeBlankImgUrl,
-                memeName: memeName,
-                currentPage: 1,
-                lastRequestTime: Date.now()
-            });
+                if (!memeSearchResult || !memeSearchResult.memeBlankImgUrl) {
+                    await bot.editMessageText(
+                        '❌ *Blank template not found*\n\n' +
+                        `🔍 No blank template found for "${memeName}"\n\n` +
+                        `💡 *Suggestions:*\n` +
+                        `• Try a different meme name\n` +
+                        `• Check spelling\n` +
+                        `• Use popular meme names\n\n` +
+                        `🎭 *Popular searches:* Drake, Distracted Boyfriend, This is Fine`,
+                        {
+                            chat_id: chatId,
+                            message_id: loadingMsg.message_id,
+                            parse_mode: 'Markdown'
+                        }
+                    );
+                    return;
+                }
 
-            // Delete the loading message
-            await bot.deleteMessage(chatId, loadingMsg.message_id);
+                // Cache the successful result for future quick access
+                await memeCache.cacheBlankMeme(memeName, memeSearchResult.memeBlankImgUrl);
 
+                // Store context for inline keyboard actions
+                await memeCache.setUserContext(chatId, {
+                    memePageUrl: memeSearchResult.memePageFullUrl,
+                    blankTemplateUrl: memeSearchResult.memeBlankImgUrl,
+                    memeName: memeName,
+                    currentPage: 1,
+                    lastRequestTime: Date.now()
+                });
 
-            // Send the blank template with rich caption
-            await bot.sendPhoto(chatId, memeSearchResult.memeBlankImgUrl, {
-                caption: `🎨 *Blank Template: "${memeName}"*\n\n` +
-                    `✨ *Create your own version:*
-` +
-                    `🔗 ${MEME_URL}/${formatMemeNameForUrl(memeName)}
+                // Delete the loading message
+                await bot.deleteMessage(chatId, loadingMsg.message_id);
 
-` +
-                    `💡 *Tips:*
-` +
-                    `• Right-click the image to save it
-` +
-                    `• Use the link above to add custom text
-` +
-                    `• Click buttons below for more options`,
-                parse_mode: 'Markdown',
-                reply_markup: inlineKeyboard
-            });
+                // Send the blank template with rich caption
+                await bot.sendPhoto(chatId, memeSearchResult.memeBlankImgUrl, {
+                    caption: `🎨 *Blank Template: "${memeName}"*\n\n` +
+                        `✨ *Create your own version:*\n` +
+                        `🔗 ${MEME_URL}/${formatMemeNameForUrl(memeName)}\n\n` +
+                        `💡 *Tips:*\n` +
+                        `• Right-click the image to save it\n` +
+                        `• Use the link above to add custom text\n` +
+                        `• Click buttons below for more options`,
+                    parse_mode: 'Markdown',
+                    reply_markup: inlineKeyboard
+                });
+
+            } finally {
+                if (page) {
+                    await page.close();
+                    console.log(`Closed page for blank request from chat ID: ${chatId}`);
+                }
+            }
 
         } catch (error) {
             console.error('Error searching for blank meme:', error);
@@ -478,11 +540,6 @@ export const handleBlankMemeCommand = (bot: TelegramBot) => {
                     parse_mode: 'Markdown'
                 }
             );
-        } finally {
-            if (page) {
-                await page.close();
-                console.log(`Closed page for blank request from chat ID: ${chatId}`);
-            }
         }
     });
 };
@@ -495,7 +552,7 @@ export const handleMemeCommand = (bot: TelegramBot) => {
         if (!memeName) {
             bot.sendMessage(chatId,
                 '❌ *Please provide a meme name*\n\n' +
-                '📝 Example: `/meme Distracted Boyfriend`\n' +
+                '📝 Example: `/meme Distracted Boyfriend`\n' + 
                 '💡 Try popular memes like: Chill guy, Epic handshake, etc.',
                 { parse_mode: 'Markdown' }
             );
@@ -503,8 +560,236 @@ export const handleMemeCommand = (bot: TelegramBot) => {
         }
 
         memeName = formatMemeNameForDisplay(memeName);
-        await triggerFullMemeSearch(bot, chatId, memeName);
+
+        // Check cache first
+        const cachedMeme = await memeCache.getMeme(memeName);
+        if (cachedMeme) {
+            await bot.sendMessage(chatId, `Found in cache: ${cachedMeme.memePageUrl}`);
+            // ... (send cached data)
+            return;
+        }
+
+        // For /meme command, prepend the meme name to the imgflip URL and use direct scraping
+        // const directUrl = `https://imgflip.com/meme/${formatMemeNameForUrl(memeName)}`;
+        // console.log(`🎯 Using direct URL for /meme command: ${directUrl}`);
+
+        await triggerFullMemeSearchDirect(bot, chatId, memeName);
     });
+};
+
+// Helper function for direct meme search (optimized for /meme command)
+const triggerFullMemeSearchDirect = async (bot: TelegramBot, chatId: number, memeName: string) => {
+    const browser = getBrowser();
+    if (!browser) {
+        await bot.sendMessage(chatId,
+            '🚀 *Bot is starting up...*\n\n' +
+            '⚙️ Initializing browser engine...\n' +
+            '⏳ Please try again in a moment!',
+            { parse_mode: 'Markdown' }
+        );
+        return;
+    }
+
+    const initialMessage = await bot.sendMessage(chatId,
+        '🚀 *Starting direct meme search...*\n\n' +
+        `📋 Analyzing "${memeName}" directly from ImgFlip...`
+    );
+
+    const tracker: ProgressTracker = {
+        chatId,
+        messageId: initialMessage.message_id,
+        currentStep: 1,
+        totalSteps: 4, // Reduced steps for direct approach
+        startTime: Date.now()
+    };
+
+    const progressInterval = setInterval(async () => {
+        if (tracker.currentStep < tracker.totalSteps) {
+            tracker.currentStep++;
+            const progressMessages = [
+                '🔍 *Accessing meme page directly...*',
+                '📚 *Gathering origin story...*',
+                '🖼️ *Collecting image examples...*',
+                '✅ *Finalizing results...*'
+            ];
+            await updateProgress(bot, tracker, progressMessages[tracker.currentStep - 1]);
+        }
+    }, 8000);
+
+    let page: Page | undefined;
+    try {
+        page = await browser.newPage();
+        console.log(`Opened new page for direct meme request from chat ID: ${chatId}`);
+
+        const responseHandler = {
+            page,
+            async sendUpdate(text: string) {
+                try {
+                    if (text.includes("origin") || text.includes("Origin")) {
+                        const formattedText = text
+                            .replace(/\*\*/g, '*')
+                            .substring(0, 3500);
+
+                        await bot.sendMessage(chatId,
+                            `📚 *Meme Origin & History* 📚\n\n${formattedText}\n\n` +
+                            `🔍 *Still gathering more data for you...*`,
+                            { parse_mode: 'Markdown' }
+                        );
+                        return;
+                    }
+
+                    const summaryText = text
+                        .replace(/\*\*/g, '*')
+                        .replace(/Main Page URL:/g, '🌐 *Source Page:*')
+                        .replace(/Blank Template URL:/g, '🎨 *Blank Template:*')
+                        .replace(/Scraped Images:/g, '🖼️ *Image Collection:*')
+                        .substring(0, 3500);
+
+                    await bot.sendMessage(chatId,
+                        `📋 *Meme Summary* 📋\n\n${summaryText}`,
+                        { parse_mode: 'Markdown' }
+                    );
+                } catch (error) {
+                    console.error('Error sending formatted message:', error);
+                    await bot.sendMessage(chatId, text);
+                }
+            },
+
+            async sendImages(images: { alt: string; src: string }[]) {
+                const relevantImages = images.filter(img =>
+                    img.src.includes('http'));
+
+                if (relevantImages.length === 0) {
+                    await bot.sendMessage(chatId,
+                        '📷 *No suitable images found for preview*\n\n' +
+                        'But you can use the blank template and source page links above! 🎨'
+                    );
+                    return;
+                }
+
+                await bot.sendMessage(chatId,
+                    `🖼️ *Image Preview Collection* (${relevantImages.length} images)\n\n` +
+                    `📸 Here are some popular examples of this meme`,
+                    { parse_mode: 'Markdown' }
+                );
+
+                for (let i = 0; i < relevantImages.length; i++) {
+                    const image = relevantImages[i];
+                    try {
+                        const caption = `🎭 *Example ${i + 1}/${relevantImages.length}*\n\n` +
+                            `${image.alt.replace(/"/g, '').substring(0, 200)}` +
+                            (image.alt.length > 200 ? '...' : '');
+
+                        await bot.sendPhoto(chatId, image.src, {
+                            caption,
+                            parse_mode: 'Markdown'
+                        });
+
+                        if (i < relevantImages.length - 1) {
+                            await new Promise(resolve => setTimeout(resolve, 1000));
+                        }
+                    } catch (error) {
+                        console.error(`Error sending image ${i + 1}:`, error);
+                    }
+                }
+
+                const inlineKeyboard = {
+                    inline_keyboard: [
+                        [
+                            {
+                                text: '🎨 Get Blank Template',
+                                callback_data: `blank_template_${chatId}`
+                            },
+                            {
+                                text: '🔍 View More Templates',
+                                callback_data: `more_templates_${chatId}`
+                            }
+                        ],
+                        [
+                            {
+                                text: '✨ Create Your Own',
+                                url: `${MEME_URL}/${formatMemeNameForUrl(memeName)}`
+                            }
+                        ],
+                        [
+                            {
+                                text: '🔄 Search Another Meme',
+                                callback_data: `new_search_${chatId}`
+                            }
+                        ]
+                    ]
+                };
+
+                const popularMemes = await memeCache.getPopularMemes();
+                const tipMessage = popularMemes.length > 0
+                    ? `💡 *Popular searches:* ${popularMemes.join(', ')}`
+                    : `💡 *Popular searches:* Drake, Distracted Boyfriend, This is Fine`;
+
+                await bot.sendMessage(chatId,
+                    '✅ *Meme search completed successfully!* ✅\n\n' +
+                    '🎨 Use the blank template to create your own\n' +
+                    '✨ Click "Create Your Own" to edit online\n' +
+                    '🔄 Search for another meme with `/meme [name]`\n\n' +
+                    tipMessage,
+                    {
+                        parse_mode: 'Markdown',
+                        reply_markup: inlineKeyboard
+                    }
+                );
+            }
+        };
+
+        // Use the meme agent with direct URL flag set to true
+        const response = await runMemeAgent(memeName, responseHandler, `meme_${Date.now()}`, true);
+
+        if (response && response.memePageUrl && response.blankMemeUrl) {
+            // Cache the successful result
+            await memeCache.cacheMeme(memeName, {
+                memePageUrl: response.memePageUrl,
+                blankTemplateUrl: response.blankMemeUrl,
+                memeName: memeName,
+                currentPage: 1,
+                lastRequestTime: Date.now(),
+                images: [],
+            });
+
+            await memeCache.setUserContext(chatId, {
+                memePageUrl: response.memePageUrl,
+                blankTemplateUrl: response.blankMemeUrl,
+                memeName: memeName,
+                currentPage: 1,
+                lastRequestTime: Date.now()
+            });
+        }
+
+        clearInterval(progressInterval);
+
+        tracker.currentStep = tracker.totalSteps;
+        await updateProgress(bot, tracker, "✅ Direct search completed successfully!", "🎉");
+
+    } catch (error) {
+        console.error("Error processing direct meme request:", error);
+
+        clearInterval(progressInterval);
+
+        await bot.editMessageText(
+            '❌ *Oops! Something went wrong* ❌\n\n' +
+            '🔧 There was an issue processing your request\n' +
+            '💡 The meme might not exist or there could be a connectivity issue\n\n' +
+            '🆘 Try with a different meme name or use `/blank` for faster results',
+            {
+                chat_id: tracker.chatId,
+                message_id: tracker.messageId,
+                parse_mode: 'Markdown'
+            }
+        );
+        return;
+    } finally {
+        if (page) {
+            await page.close();
+            console.log(`Closed page for direct meme request from chat ID: ${chatId}`);
+        }
+    }
 };
 
 export const handleCallbackQuery = (bot: TelegramBot) => {
@@ -582,7 +867,7 @@ export const handleCallbackQuery = (bot: TelegramBot) => {
                 }
                 await bot.sendMessage(chatId, `🔍 *Getting full information for "${context.memeName}"*`, { parse_mode: 'Markdown' });
                 await memeCache.deleteUserContext(chatId);
-                await triggerFullMemeSearch(bot, chatId, context.memeName);
+                await triggerFullMemeSearchDirect(bot, chatId, context.memeName);
 
             } else if (data.startsWith('new_blank_')) {
                 await bot.sendMessage(chatId, '🔍 *Ready for another blank template search!*\n\nUse `/blank [name]`', { parse_mode: 'Markdown' });

@@ -53,4 +53,4 @@ HEALTHCHECK --interval=60s --timeout=15s --start-period=15s --retries=5 \
     CMD curl -f http://localhost:3300/health || exit 1
 
 # Start the application
-CMD ["node", "dist/bot/bot.js"]
+CMD ["npm", "start"]

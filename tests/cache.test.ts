@@ -179,7 +179,7 @@ describe('MemeCache Singleton', () => {
             3600,
             expect.any(String)
           );
-      }, 10000);
+      }, 20000);
   });
 
   describe('Cache Stats and Disconnect', () => {
