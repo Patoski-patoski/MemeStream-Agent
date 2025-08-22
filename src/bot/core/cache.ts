@@ -409,8 +409,24 @@ Give me 5 different popular memes:`
         }
     }
 
-    // === STATISTICS ===
     
+
+    /**
+     * Returns statistics about the current cache state.
+     * @returns A Promise resolving to an object containing statistics about Redis and the context cache.
+     * The object has the following shape:
+     * 
+     * {
+     *   redis: {
+     *     connected: boolean;
+     *     memory: string;
+     *   };
+     *   contexts: {
+     *     activeContexts: number;
+     *     memoryUsage: NodeJS.MemoryUsage;
+     *   };
+     * }
+     */
     async getCacheStats(): Promise<CacheStats> {
         try {
             const redisInfo = await this.redis.info('memory');
@@ -553,6 +569,17 @@ Give me 5 different popular memes:`
         return null;
     }
 
+    /**
+     * Computes the Levenshtein distance between two strings.
+     *
+     * @param {string} s1 - The first string.
+     * @param {string} s2 - The second string.
+     * @returns {number} - The Levenshtein distance between s1 and s2.
+     *
+     * The Levenshtein distance is a measure of the minimum number of single-character edits (insertions, deletions or substitutions) required to change one word into the other.
+     *
+     * This implementation is based on the Wagner-Fischer algorithm, with a time complexity of O(m*n), where m and n are the lengths of the strings.
+     */
     private levenshteinDistance(s1: string, s2: string): number {
         s1 = s1.toLowerCase();
 

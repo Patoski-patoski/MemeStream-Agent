@@ -66,6 +66,12 @@ async function initialize() {
     }
 }
 
+/**
+ * Starts the bot, initializing it if necessary, and sets up the bot commands and
+ * event handlers. If the bot initialization fails, it will retry up to 5 times.
+ * If all retries fail, it will exit the process with a non-zero status code.
+ * @returns The bot instance, or null if the bot initialization failed.
+ */
 export async function startBot() {
     let retries = 5;
     while (retries > 0) {
@@ -92,6 +98,7 @@ export async function startBot() {
     }
     return null;
 }
+
 
 export function getBotInstance(): TelegramBot {
     return bot;

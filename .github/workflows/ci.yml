@@ -18,6 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       MEME_URL: https://imgflip.com/memegenerator
+      TELEGRAM_BOT_TOKEN: dummy-token-for-testing
     steps:
       # 1. Checkout repo
       - uses: actions/checkout@v4

@@ -6,7 +6,6 @@ import { runMemeAgent } from '../../meme-generator/agents/memegeneratorAgent.js'
 import { searchMemeAndGetFirstLink } from '../../meme-generator/tools/meme-generator-tools.js';
 import { ProgressTracker } from '../types/types.js';
 import {
-    // progressMessages,
     updateProgress,
     constructPageUrl
 } from '../utils/utils.js';
@@ -15,6 +14,21 @@ import { memeCache } from './cache.js';
 
 const MEME_URL = process.env.MEME_URL;
 
+/**
+ * Sets the bot commands menu.
+ *
+ * This function sets the bot commands menu with the following commands:
+ *
+ * - `/start`: Welcome message and bot introduction
+ * - `/meme <meme name>`: Full meme search with history and examples
+ * - `/blank <meme name>`: Get blank meme template instantly
+ * - `/help`: Show help and usage instructions
+ *
+ * The commands are set for all private chats and all group chats.
+ *
+ * @param {TelegramBot} bot - The Telegram bot instance.
+ * @returns {Promise<void>}
+ */
 export const setupBotCommands = async (bot: TelegramBot) => {
     try {
         const commands = [
@@ -55,6 +69,11 @@ export const setupBotCommands = async (bot: TelegramBot) => {
     }
 };
 
+/**
+ * Registers a listener for the /start command to display a welcome message
+ * with available commands, examples, and tips.
+ * @param {TelegramBot} bot - The Telegram bot instance.
+ */
 export const handleStartCommand = (bot: TelegramBot) => {
     bot.onText(/^\/start$/, (msg) => {
         const chatId = msg.chat.id;
@@ -74,6 +93,11 @@ export const handleStartCommand = (bot: TelegramBot) => {
     });
 };
 
+    /**
+     * Registers a listener for the /help command to display a help message
+     * with available commands, examples, and tips.
+     * @param {TelegramBot} bot - The Telegram bot instance.
+     */
 export const handleHelpCommand = (bot: TelegramBot) => {
     bot.onText(/^\/help$/, (msg) => {
         const chatId = msg.chat.id;
@@ -453,10 +477,6 @@ export const handleMemeCommand = (bot: TelegramBot) => {
             return;
         }
 
-        // For /meme command, prepend the meme name to the imgflip URL and use direct scraping
-        // const directUrl = `https://imgflip.com/meme/${formatMemeNameForUrl(memeName)}`;
-        // console.log(`🎯 Using direct URL for /meme command: ${directUrl}`);
-
         await triggerFullMemeSearchDirect(bot, chatId, memeName);
     });
 };
@@ -507,6 +527,15 @@ const triggerFullMemeSearchDirect = async (bot: TelegramBot, chatId: number, mem
 
         const responseHandler = {
             page,
+        /**
+         * Send a formatted update to the user, given some text.
+         * If the text contains the word "origin" (case-insensitive), it will be
+         * sent as a separate message with a header and a note at the end.
+         * Otherwise, it will be formatted as a summary message and sent.
+         *
+         * @param {string} text The text to send to the user.
+         * @returns {Promise<void>} A promise that resolves when the message has been sent.
+         */
             async sendUpdate(text: string) {
                 try {
                     if (text.includes("origin") || text.includes("Origin")) {
@@ -540,6 +569,11 @@ const triggerFullMemeSearchDirect = async (bot: TelegramBot, chatId: number, mem
             },
 
 
+        /**
+         * Sends a collection of scraped images for a specific meme to the user as a Telegram photo album.
+         * @param images - An array of objects containing `alt` and `src` properties, where `alt` is the image alt text and `src` is the image URL.
+         * @returns A promise that resolves when all images have been sent.
+         */
             async sendImages(images: { alt: string; src: string }[]) {
                 const relevantImages = images.filter(img =>
                     img.src.includes('http'));
@@ -681,6 +715,12 @@ const triggerFullMemeSearchDirect = async (bot: TelegramBot, chatId: number, mem
     }
 };
 
+/**
+ * Registers a listener for callback queries to handle user interactions
+ * with the bot, such as viewing examples, getting full information, or
+ * requesting a blank template.
+ * @param {TelegramBot} bot - The Telegram bot instance.
+ */
 export const handleCallbackQuery = (bot: TelegramBot) => {
     bot.on('callback_query', async (callbackQuery) => {
         const msg = callbackQuery.message;

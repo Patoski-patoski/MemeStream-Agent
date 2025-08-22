@@ -35,6 +35,19 @@ app.get('/', (req: Request, res: Response) => {
     });
 });
 
+/**
+ * Starts a webhook server for Telegram bot updates.
+ *
+ * The server listens on a configurable port (default 3300) and accepts
+ * incoming POST requests to the `/webhook/${TELEGRAM_BOT_TOKEN}` path.
+ * The request body is passed to the `bot.processUpdate` method.
+ *
+ * The server also exposes a health check endpoint at `/health` which
+ * returns a JSON response with the status `OK` and a timestamp.
+ *
+ * @param {TelegramBot} bot The Telegram bot instance to handle updates
+ * @returns {Promise<http.Server>} A promise that resolves to the started server
+ */
 export const startServer = (bot: TelegramBot): Promise<http.Server> => {
     return new Promise((resolve) => {
         const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
@@ -56,6 +69,13 @@ export const startServer = (bot: TelegramBot): Promise<http.Server> => {
     });
 };
 
+/**
+ * Close the Express.js server instance.
+ *
+ * Returns a Promise that resolves when the server is fully closed.
+ *
+ * Note: This function does nothing if the server is not listening.
+ */
 export const closeServer = (): Promise<void> => {
     return new Promise((resolve) => {
         if (server && server.listening) {
