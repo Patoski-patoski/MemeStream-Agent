@@ -85,4 +85,6 @@ async function main() {
     }
 }
 
-main();
+if (process.env.JEST_WORKER_ID === undefined) {
+    main();
+}
