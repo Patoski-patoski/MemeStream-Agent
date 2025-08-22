@@ -770,6 +770,7 @@ const triggerFullMemeSearchDirect = async (bot: TelegramBot, chatId: number, mem
                 }
             },
 
+
             async sendImages(images: { alt: string; src: string }[]) {
                 const relevantImages = images.filter(img =>
                     img.src.includes('http'));
