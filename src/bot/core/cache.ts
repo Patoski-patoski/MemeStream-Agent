@@ -498,6 +498,27 @@ Give me 5 different popular memes:`
             return foundMeme;
         }
 
+        // Levenshtein distance matching
+        const LEVENSHTEIN_THRESHOLD = 3; // Adjust as needed
+        let bestMatch: ImgflipMeme | null = null;
+        let minDistance = Infinity;
+
+        for (const meme of allMemes) {
+            const memeName = meme.name.toLowerCase();
+            const distance = this.levenshteinDistance(normalizedSearch, memeName);
+
+            if (distance < minDistance) {
+                minDistance = distance;
+                bestMatch = meme;
+            }
+        }
+
+        if (bestMatch && minDistance <= LEVENSHTEIN_THRESHOLD) {
+            console.log(`✨ Levenshtein match found: "${bestMatch.name}" (distance: ${minDistance}) for "${searchTerm}"`);
+            return bestMatch;
+        }
+
+
         // Fuzzy matching with individual words
         const searchWords = normalizedSearch.split(/\s+/).filter(word => word.length > 2);
         if (searchWords.length > 0) {
@@ -516,7 +537,13 @@ Give me 5 different popular memes:`
         return null;
     }
 
-    async getMeme(memeName: string): Promise<MemeContext | null> {
+    /**
+     * Retrieve a cached meme's data by name.
+     *
+     * @param {string} memeName - The name of the meme to retrieve.
+     * @returns {Promise<CachedMemeData | null>} - A promise that resolves with the cached meme's data if found, or null if not found.
+     */
+    async getMeme(memeName: string): Promise<CachedMemeData | null> {
         const key = this.MEME_KEY_PREFIX + memeName.toLowerCase().trim();
         const cached = await this.redis.get(key);
         if (cached) {
@@ -525,7 +552,34 @@ Give me 5 different popular memes:`
         }
         return null;
     }
-}
 
+    private levenshteinDistance(s1: string, s2: string): number {
+        s1 = s1.toLowerCase();
+
+
+        s2 = s2.toLowerCase();
+
+        const costs: number[] = [];
+        for (let i = 0; i <= s1.length; i++) {
+            let lastValue = i;
+            for (let j = 0; j <= s2.length; j++) {
+                if (i === 0) {
+                    costs[j] = j;
+                } else if (j > 0) {
+                    let newValue = costs[j - 1];
+                    if (s1.charAt(i - 1) !== s2.charAt(j - 1)) {
+                        newValue = Math.min(Math.min(newValue, lastValue), costs[j]) + 1;
+                    }
+                    costs[j - 1] = lastValue;
+                    lastValue = newValue;
+                }
+            }
+            if (i > 0) {
+                costs[s2.length] = lastValue;
+            }
+        }
+        return costs[s2.length];
+    }
+}
 
 export const memeCache = new MemeCache();

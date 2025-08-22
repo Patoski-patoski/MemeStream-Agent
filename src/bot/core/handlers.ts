@@ -10,7 +10,7 @@ import {
     updateProgress,
     constructPageUrl
 } from '../utils/utils.js';
-import { formatMemeNameForUrl, formatMemeNameForDisplay } from '../utils/formatters.js';
+import { formatMemeNameForUrl, extractMemeNameFromUrl } from '../utils/formatters.js';
 import { memeCache } from './cache.js';
 
 const MEME_URL = process.env.MEME_URL;
@@ -341,10 +341,17 @@ export const handleHelpCommand = (bot: TelegramBot) => {
 };
 
 
+/**
+ * Handles the /blank command, which provides a blank meme template for the specified meme name.
+ * If no meme name is provided, asks the user to provide one.
+ * If the meme name is not found in the database, falls back to web scraping.
+ * If the meme is found, sends the blank template with a rich caption.
+ * Stores context for inline keyboard actions.
+ */
 export const handleBlankMemeCommand = (bot: TelegramBot) => {
     bot.onText(/^\/blank( (.+))?/, async (msg, match) => {
         const chatId = msg.chat.id;
-        let memeName = match?.[1];
+        const memeName = match?.[1];
 
         if (!memeName) {
             bot.sendMessage(chatId,
@@ -356,7 +363,8 @@ export const handleBlankMemeCommand = (bot: TelegramBot) => {
             return;
         }
 
-        memeName = formatMemeNameForDisplay(memeName);
+        const formattedMemeName = formatMemeNameForUrl(memeName);
+        console.log("formatted memename", formattedMemeName);
 
         // Create inline keyboard
         const inlineKeyboard = {
@@ -381,12 +389,12 @@ export const handleBlankMemeCommand = (bot: TelegramBot) => {
         };
 
         // Step 1: Check local cache first (fastest)
-        const cachedUrl = await memeCache.getBlankMeme(memeName);
+        const cachedUrl = await memeCache.getBlankMeme(formattedMemeName);
         if (cachedUrl) {
             await bot.sendPhoto(chatId, cachedUrl, {
                 caption: `🎨 *Blank Template: "${memeName}"*\n\n` +
                     `✨ *Create your own version:*\n` +
-                    `🔗 ${MEME_URL}/${formatMemeNameForUrl(memeName)}\n\n` +
+                    `🔗 ${MEME_URL}/${formattedMemeName}\n\n` +
                     `💡 *Tips:*\n` +
                     `• Right-click the image to save it\n` +
                     `• Use the link above to add custom text\n` +
@@ -405,15 +413,16 @@ export const handleBlankMemeCommand = (bot: TelegramBot) => {
 
         try {
             // Step 2: Check ImgFlip API cache (fast)
-            console.log(`🚀 Step 1: Checking ImgFlip API cache for "${memeName}"`);
-            const foundMeme = await memeCache.findMemeInCache(memeName);
+            console.log(`🚀 Step 1: Checking ImgFlip API cache for "${formattedMemeName}"`);
+            const foundMeme = await memeCache.findMemeInCache(formattedMemeName);
+            console.log("Found meme", foundMeme);
 
             if (foundMeme) {
-                console.log(`✅ Found "${memeName}" in API cache as "${foundMeme.name}"`);
+                console.log(`✅ Found "${formattedMemeName}" in API cache as "${foundMeme.name}"`);
 
                 // Cache the blank meme for future requests
-                await memeCache.cacheBlankMeme(memeName, foundMeme.url);
-                if (memeName.toLowerCase() !== foundMeme.name.toLowerCase()) {
+                await memeCache.cacheBlankMeme(formattedMemeName, foundMeme.url);
+                if (formattedMemeName.toLowerCase() !== foundMeme.name.toLowerCase()) {
                     await memeCache.cacheBlankMeme(foundMeme.name, foundMeme.url);
                 }
 
@@ -421,7 +430,7 @@ export const handleBlankMemeCommand = (bot: TelegramBot) => {
                 await memeCache.setUserContext(chatId, {
                     memePageUrl: `https://imgflip.com/meme/${foundMeme.id}/${formatMemeNameForUrl(foundMeme.name)}`,
                     blankTemplateUrl: foundMeme.url,
-                    memeName: foundMeme.name, // Use official name from API
+                    memeName: foundMeme.name, // official name from API
                     currentPage: 1,
                     lastRequestTime: Date.now()
                 });
@@ -494,14 +503,17 @@ export const handleBlankMemeCommand = (bot: TelegramBot) => {
                     return;
                 }
 
+                console.log("scraped blank result", memeSearchResult);
+
                 // Cache the successful result for future quick access
-                await memeCache.cacheBlankMeme(memeName, memeSearchResult.memeBlankImgUrl);
+                const extractedMemeName = extractMemeNameFromUrl(memeSearchResult.memeBlankImgUrl) as string;
+                await memeCache.cacheBlankMeme(extractedMemeName, memeSearchResult.memeBlankImgUrl);
 
                 // Store context for inline keyboard actions
                 await memeCache.setUserContext(chatId, {
                     memePageUrl: memeSearchResult.memePageFullUrl,
                     blankTemplateUrl: memeSearchResult.memeBlankImgUrl,
-                    memeName: memeName,
+                    memeName: extractedMemeName,
                     currentPage: 1,
                     lastRequestTime: Date.now()
                 });
@@ -513,7 +525,7 @@ export const handleBlankMemeCommand = (bot: TelegramBot) => {
                 await bot.sendPhoto(chatId, memeSearchResult.memeBlankImgUrl, {
                     caption: `🎨 *Blank Template: "${memeName}"*\n\n` +
                         `✨ *Create your own version:*\n` +
-                        `🔗 ${MEME_URL}/${formatMemeNameForUrl(memeName)}\n\n` +
+                        `🔗 ${MEME_URL}/${extractedMemeName}\n\n` +
                         `💡 *Tips:*\n` +
                         `• Right-click the image to save it\n` +
                         `• Use the link above to add custom text\n` +
@@ -543,7 +555,12 @@ export const handleBlankMemeCommand = (bot: TelegramBot) => {
         }
     });
 };
-
+/**
+ * Registers a listener for the /meme command to search for a meme and send
+ * its origin story, summary, and images to the chat.
+ *
+ * @param {TelegramBot} bot - The Telegram bot instance.
+ */
 export const handleMemeCommand = (bot: TelegramBot) => {
     bot.onText(/^\/meme( (.+))?/, async (msg, match) => {
         const chatId = msg.chat.id;
@@ -559,13 +576,111 @@ export const handleMemeCommand = (bot: TelegramBot) => {
             return;
         }
 
-        memeName = formatMemeNameForDisplay(memeName);
+        memeName = formatMemeNameForUrl(memeName);
 
         // Check cache first
         const cachedMeme = await memeCache.getMeme(memeName);
         if (cachedMeme) {
-            await bot.sendMessage(chatId, `Found in cache: ${cachedMeme.memePageUrl}`);
-            // ... (send cached data)
+            console.log(`⚡ Serving cached data for "${memeName}"`);
+
+            // Send cached origin story first
+            if (cachedMeme.originStory) {
+                await bot.sendMessage(chatId, cachedMeme.originStory, { parse_mode: 'Markdown' });
+            }
+
+            // Send cached summary
+            if (cachedMeme.summary) {
+                await bot.sendMessage(chatId, cachedMeme.summary, { parse_mode: 'Markdown' });
+            }
+
+            // Send cached images
+            if (cachedMeme.images && cachedMeme.images.length > 0) {
+                await bot.sendMessage(chatId,
+                    `🖼️ *Image Preview Collection* (${cachedMeme.images.length} images)\n\n` +
+                    `📸 Here are some popular examples of this meme`,
+                    { parse_mode: 'Markdown' }
+                );
+
+                for (let i = 0; i < cachedMeme.images.length; i++) {
+                    const image = cachedMeme.images[i];
+                    try {
+                        const caption = `🎭 *Example ${i + 1}/${cachedMeme.images.length}*\n\n` +
+                            `${image.alt.replace(/"/g, '').substring(0, 200)}` +
+                            (image.alt.length > 200 ? '...' : '');
+
+                        await bot.sendPhoto(chatId, image.src, {
+                            caption,
+                            parse_mode: 'Markdown'
+                        });
+
+                        if (i < cachedMeme.images.length - 1) {
+                            await new Promise(resolve => setTimeout(resolve, 1000));
+                        }
+                    } catch (error) {
+                        console.error(`Error sending cached image ${i + 1}:`, error);
+                    }
+                }
+            } else {
+                await bot.sendMessage(chatId,
+                    '📷 *No suitable images found for preview*\n\n' +
+                    'But you can use the blank template and source page links above! 🎨'
+                );
+            }
+
+            // Send final completion message with inline keyboard
+            const inlineKeyboard = {
+                inline_keyboard: [
+                    [
+                        {
+                            text: '🎨 Get Blank Template',
+                            callback_data: `blank_template_${chatId}`
+                        },
+                        {
+                            text: '🔍 View More Templates',
+                            callback_data: `more_templates_${chatId}`
+                        }
+                    ],
+                    [
+                        {
+                            text: '✨ Create Your Own',
+                            url: `${MEME_URL}/${formatMemeNameForUrl(memeName)}`
+                        }
+                    ],
+                    [
+                        {
+                            text: '🔄 Search Another Meme',
+                            callback_data: `new_search_${chatId}`
+                        }
+                    ]
+                ]
+            };
+
+            // Set user context for inline keyboard functionality
+            await memeCache.setUserContext(chatId, {
+                memePageUrl: cachedMeme.memePageUrl,
+                blankTemplateUrl: cachedMeme.blankTemplateUrl,
+                memeName: memeName,
+                currentPage: 1,
+                lastRequestTime: Date.now()
+            });
+
+            const popularMemes = await memeCache.getPopularMemes();
+            const tipMessage = popularMemes.length > 0
+                ? `💡 *Popular searches:* ${popularMemes.join(', ')}`
+                : `💡 *Popular searches:* Drake, Distracted Boyfriend, This is Fine`;
+
+            await bot.sendMessage(chatId,
+                '✅ *Meme search completed successfully!* ✅\n\n' +
+                '🎨 Use the blank template to create your own\n' +
+                '✨ Click "Create Your Own" to edit online\n' +
+                '🔄 Search for another meme with `/meme [name]`\n\n' +
+                tipMessage,
+                {
+                    parse_mode: 'Markdown',
+                    reply_markup: inlineKeyboard
+                }
+            );
+
             return;
         }
 
@@ -673,6 +788,7 @@ const triggerFullMemeSearchDirect = async (bot: TelegramBot, chatId: number, mem
                     { parse_mode: 'Markdown' }
                 );
 
+
                 for (let i = 0; i < relevantImages.length; i++) {
                     const image = relevantImages[i];
                     try {
@@ -743,6 +859,7 @@ const triggerFullMemeSearchDirect = async (bot: TelegramBot, chatId: number, mem
         const response = await runMemeAgent(memeName, responseHandler, `meme_${Date.now()}`, true);
 
         if (response && response.memePageUrl && response.blankMemeUrl) {
+            console.log("Caching result for /meme");
             // Cache the successful result
             await memeCache.cacheMeme(memeName, {
                 memePageUrl: response.memePageUrl,
@@ -750,7 +867,9 @@ const triggerFullMemeSearchDirect = async (bot: TelegramBot, chatId: number, mem
                 memeName: memeName,
                 currentPage: 1,
                 lastRequestTime: Date.now(),
-                images: [],
+                images: response.images,
+                originStory: response.originStory,
+                summary: response.summary,
             });
 
             await memeCache.setUserContext(chatId, {

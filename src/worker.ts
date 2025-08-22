@@ -1,4 +1,4 @@
-// src/wworker.ts - Complete implementation with cached API approach
+// src/worker.ts
 import { Worker, Job } from 'bullmq';
 import { bot } from './bot/core/bot.js';
 import { memeQueue } from './bot/core/queue.js';
