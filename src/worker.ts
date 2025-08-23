@@ -73,9 +73,7 @@ const processor = async (job: Job<MemeJobData>) => {
 
                 // Cache the blank meme with both the searched name and official name for future hits
                 await memeCache.cacheBlankMeme(memeName, foundMeme.url);
-                if (memeName.toLowerCase() !== foundMeme.name.toLowerCase()) {
-                    await memeCache.cacheBlankMeme(foundMeme.name, foundMeme.url);
-                }
+                
 
                 return { success: true, url: foundMeme.url };
 

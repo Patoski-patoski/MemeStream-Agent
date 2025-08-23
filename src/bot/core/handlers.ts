@@ -215,9 +215,7 @@ export const handleBlankMemeCommand = (bot: TelegramBot) => {
 
                 // Cache the blank meme for future requests
                 await memeCache.cacheBlankMeme(formattedMemeName, foundMeme.url);
-                if (formattedMemeName.toLowerCase() !== foundMeme.name.toLowerCase()) {
-                    await memeCache.cacheBlankMeme(foundMeme.name, foundMeme.url);
-                }
+                
 
                 // Store context for inline keyboard actions
                 await memeCache.setUserContext(chatId, {
@@ -234,11 +232,12 @@ export const handleBlankMemeCommand = (bot: TelegramBot) => {
                 await bot.sendPhoto(chatId, foundMeme.url, {
                     caption: `🎨 *Blank Template: "${foundMeme.name}"*\n\n` +
                         `✨ *Create your own version:*\n` +
-                        `🔗 ${MEME_URL}/${formatMemeNameForUrl(foundMeme.name)}\n\n` +
+                        `🔗 ${MEME_URL}/${foundMeme.id}/${formatMemeNameForUrl(foundMeme.name)}` + 
                         `💡 *Tips:*\n` +
                         `• Right-click the image to save it\n` +
                         `• Use the link above to add custom text\n` +
                         `• Click buttons below for more options`,
+                    
                     parse_mode: 'Markdown',
                     reply_markup: inlineKeyboard
                 });
@@ -320,7 +319,8 @@ export const handleBlankMemeCommand = (bot: TelegramBot) => {
                         `✨ *Create your own version:*\n` +
                         `🔗 ${MEME_URL}/${extractedMemeName}\n\n` +
                         `💡 *Tips:*\n` +
-                        `• Right-click the image to save it\n` +
+                        `• For PC, Right-click the image to save it\n` +
+                        `• For Mobile, Tap and hold the image to save it\n` +
                         `• Use the link above to add custom text\n` +
                         `• Click buttons below for more options`,
                     parse_mode: 'Markdown',
@@ -660,6 +660,7 @@ const triggerFullMemeSearchDirect = async (bot: TelegramBot, chatId: number, mem
         };
 
         // Use the meme agent with direct URL flag set to true
+        console.log("Before scraping response", memeName);
         const response = await runMemeAgent(memeName, responseHandler, `meme_${Date.now()}`, true);
 
         if (response && response.memePageUrl && response.blankMemeUrl) {

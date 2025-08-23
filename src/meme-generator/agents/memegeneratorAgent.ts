@@ -39,7 +39,7 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 const modelName = process.env.MODEL_NAME!;
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
 const TAG_MEME = process.env.TAG_MEME!;
 
 class MemeNotFoundError extends Error {

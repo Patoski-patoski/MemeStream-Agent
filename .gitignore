@@ -2,3 +2,6 @@ node_modules/
 dist/
 .env
 commit.txt
+output.json
+scrape.js
+temp.txt

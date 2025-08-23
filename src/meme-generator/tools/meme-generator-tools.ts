@@ -191,5 +191,6 @@ export async function generateMemeData(
   }
 
   // Scrape meme images
+  console.log("Url to scrape:", searchResult.memePageFullUrl);
   return await scrapeMemeImagesFromPage(page, searchResult.memePageFullUrl);
 }

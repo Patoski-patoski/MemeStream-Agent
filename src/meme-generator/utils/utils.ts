@@ -12,6 +12,14 @@ import {
 import { RETRY_CONFIG } from "./constants.js";
 
 
+/**
+ * Format a meme alt text string from a search result into a clean string to use for display.
+ * Split the text at the first '|' and use the first part as the title.
+ * Split the rest at the first ';' or ',' or '|' and use the first part as the subtitle.
+ * Join the title and subtitle with a hyphen.
+ * @param text The input string to format.
+ * @returns The formatted string.
+ */
 export function formatMemeAltText(text: string): string {
     // Split at first '|'
     const [title, rest] = text.split('|').map(s => s.trim());
@@ -23,6 +31,14 @@ export function formatMemeAltText(text: string): string {
 }
 
 
+/**
+ * Given a potentially relative href, return a full URL by prepending the baseUrl
+ * if href does not start with http.
+ * If href is null, return an empty string.
+ * @param {string | null} href
+ * @param {string} baseUrl
+ * @returns {string}
+ */
 export function createFullUrl(href: string | null, baseUrl: string): string {
     if (!href) {
         // Handle null href gracefully, perhaps return an empty string or throw a more specific error
@@ -35,6 +51,11 @@ export function createFullUrl(href: string | null, baseUrl: string): string {
 }
 
 
+    /**
+     * Extracts meme image data from the given page.
+     * @param page The page to extract from
+     * @returns A promise resolving to an array of MemeImageData objects
+     */
 export async function extractMemeImageData(page: Page): Promise<MemeImageData[]> {
     const rawImageData: MemeImageData[] = await page.$$eval('img.base-img', (imgs: Element[]) =>
         (imgs as HTMLImageElement[]).map(img => ({
