@@ -3,9 +3,11 @@
 import dotenv from "dotenv";
 import { Page } from 'playwright';
 
-import { MemeImageData, MemeSearchResult } from '../types/types.js';
+import { MemeImageData, MemeSearchResult, BlankMemeTemplate } from '../types/types.js';
 import { createFullUrl, extractMemeImageData } from '../utils/utils.js';
 import { TIMEOUTS, SELECTORS } from "../utils/constants.js";
+import { getMemeFromImgFlip } from "../api/imgflip.js";
+import { formatMemeNameForUrl } from "../../bot/utils/formatters.js";
 
 if (process.env.NODE_ENV !== 'production') {
   dotenv.config();
@@ -193,4 +195,41 @@ export async function generateMemeData(
   // Scrape meme images
   console.log("Url to scrape:", searchResult.memePageFullUrl);
   return await scrapeMemeImagesFromPage(page, searchResult.memePageFullUrl);
+}
+
+/**
+ * Gets a blank meme template from the ImgFlip API or by scraping.
+ * @param memeName The name of the meme to search for.
+ * @param page The Playwright page object to use for scraping if the API fails.
+ * @returns A promise that resolves to a BlankMemeTemplate object or null if not found.
+ */
+export async function getBlankMemeTemplate(
+  memeName: string,
+  page: Page
+): Promise<BlankMemeTemplate | null> {
+  // First, try the ImgFlip API
+  const apiMeme = await getMemeFromImgFlip(memeName);
+  if (apiMeme) {
+    return {
+      source: 'api',
+      id: apiMeme.id,
+      name: apiMeme.name,
+      url: apiMeme.url,
+      pageUrl: `${MEME_SEARCH_URL}/${apiMeme.id}/${formatMemeNameForUrl(apiMeme.name)}`,
+    };
+  }
+
+  // If the API fails, fall back to scraping
+  const scrapedMeme = await searchMemeAndGetFirstLink(page, memeName);
+  if (scrapedMeme && scrapedMeme.memeBlankImgUrl) {
+    return {
+      source: 'scrape',
+      id: null,
+      name: memeName, // We don't have the official name from scraping
+      url: scrapedMeme.memeBlankImgUrl,
+      pageUrl: scrapedMeme.memePageFullUrl,
+    };
+  }
+
+  return null;
 }

@@ -4,7 +4,7 @@ import { Page } from 'playwright';
 
 export const MemePageLinkSchema = z.object({
   memePageFullUrl: z.url(),
-  memeBlankImgUrl: z.url().nullable().optional(), // Make optional and nullable if it can be missing
+  memeBlankImgUrl: z.url().nullable().optional(),
 });
 
 // Represent a single scraped meme image
@@ -62,3 +62,11 @@ export type MockPage = Omit<Page, '$eval' | '$$eval'> & {
 };
 
 export type MemeToolFunction = (page: Page, memeName: string) => Promise<MemeSearchResult | MemeImageData[] | null>;
+
+export interface BlankMemeTemplate {
+  source: 'api' | 'scrape';
+  id: string | null;
+  name: string;
+  url: string;
+  pageUrl: string | null;
+}

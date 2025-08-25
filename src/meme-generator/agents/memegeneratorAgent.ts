@@ -98,7 +98,8 @@ export async function runMemeAgent(
     isDirectUrl: boolean = false
 ) {
     const sessionId = requestId || `meme_${Date.now()}`;
-    const formattedMemeName = formatMemeNameForUrl(memeNameInput);
+    const cleanMemeName = memeNameInput.includes('/') ? memeNameInput.split('/')[1] : memeNameInput;
+    const formattedMemeName = formatMemeNameForUrl(cleanMemeName);
     let page: Page | undefined;
 
     try {
@@ -154,10 +155,18 @@ export async function runMemeAgent(
 
         console.log("Direct URL", isDirectUrl);
         console.log("memeSearchResult", memeSearchResult);
-
         if (isDirectUrl) {
             // For /meme command - use direct URL approach for faster scraping
-            const directUrl = `https://imgflip.com/meme/${formattedMemeName}`;
+            // Check if memeNameInput already contains the full path (ID/Name)
+            let directUrl: string;
+            if (memeNameInput.includes('/')) {
+                // Full path provided (e.g., "309668311/Two-Paths")
+                directUrl = `https://imgflip.com/meme/${memeNameInput}`;
+            } else {
+                // Just name provided (fallback case)
+                directUrl = `https://imgflip.com/meme/${formattedMemeName}`;
+            }
+
             console.log(`✅ Using direct URL approach: ${directUrl}`);
 
             // Try to extract blank template URL from the direct page
@@ -180,7 +189,7 @@ export async function runMemeAgent(
 
                     if (blankTemplateUrl) {
                         memeSearchResult = {
-                            memePageFullUrl: directUrl,
+                            memePageFullUrl: directUrl, // Use the constructed direct URL
                             memeBlankImgUrl: blankTemplateUrl
                         };
                         console.log(`✅ Found blank template via direct method: ${blankTemplateUrl}`);
@@ -287,9 +296,8 @@ export async function runMemeAgent(
                             Provide an engaging, informative origin story for memes. 
                             Include: when it started, how it became popular, typical usage, and cultural impact.
                             Keep it conversational but informative, around 100-250 words.
-                            Go straight to the point. No need to introduce or onboard.
-                            The provided text may include numbers, However, use extract relevant that may include the text.
-                            E.g https://imgflip.com/memegenerator/558880671/Squid-Game -> The meme image => Squid Game
+                            Go straight to the point. No need to introducing or onboarding.
+                            The provided text may include numbers, However, extract relevant text and use as meme text.
                             Use emojis sparingly for readability.`
                         }]
                     },
