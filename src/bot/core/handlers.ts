@@ -222,6 +222,7 @@ export const handleBlankMemeCommand = (bot: TelegramBot) => {
                     memePageUrl: `https://imgflip.com/meme/${foundMeme.id}/${formatMemeNameForUrl(foundMeme.name)}`,
                     blankTemplateUrl: foundMeme.url,
                     memeName: foundMeme.name, // official name from API
+                    memeId: foundMeme.id,
                     currentPage: 1,
                     lastRequestTime: Date.now()
                 });
@@ -436,7 +437,7 @@ export const handleMemeCommand = (bot: TelegramBot) => {
                     [
                         {
                             text: '✨ Create Your Own',
-                            url: `${MEME_URL}/${formatMemeNameForUrl(memeName)}`
+                            url: cachedMeme.memePageUrl
                         }
                     ],
                     [
@@ -482,7 +483,7 @@ export const handleMemeCommand = (bot: TelegramBot) => {
 };
 
 // Helper function for direct meme search (optimized for /meme command)
-const triggerFullMemeSearchDirect = async (bot: TelegramBot, chatId: number, memeName: string) => {
+const triggerFullMemeSearchDirect = async (bot: TelegramBot, chatId: number, memeName: string, memeId?: string) => {
     const browser = getBrowser();
     if (!browser) {
         await bot.sendMessage(chatId,
@@ -613,6 +614,7 @@ const triggerFullMemeSearchDirect = async (bot: TelegramBot, chatId: number, mem
                     }
                 }
 
+                if (response && response.memePageUrl) {
                 const inlineKeyboard = {
                     inline_keyboard: [
                         [
@@ -628,7 +630,7 @@ const triggerFullMemeSearchDirect = async (bot: TelegramBot, chatId: number, mem
                         [
                             {
                                 text: '✨ Create Your Own',
-                                url: `${MEME_URL}/${formatMemeNameForUrl(memeName)}`
+                                url: response.memePageUrl
                             }
                         ],
                         [
@@ -657,11 +659,12 @@ const triggerFullMemeSearchDirect = async (bot: TelegramBot, chatId: number, mem
                     }
                 );
             }
+            }
         };
 
         // Use the meme agent with direct URL flag set to true
         console.log("Before scraping response", memeName);
-        const response = await runMemeAgent(memeName, responseHandler, `meme_${Date.now()}`, true);
+        const response = await runMemeAgent(memeId ? `${memeId}/${memeName}` : memeName, responseHandler, `meme_${Date.now()}`, true);
 
         if (response && response.memePageUrl && response.blankMemeUrl) {
             console.log("Caching result for /meme");
@@ -797,7 +800,7 @@ export const handleCallbackQuery = (bot: TelegramBot) => {
                 }
                 await bot.sendMessage(chatId, `🔍 *Getting full information for "${context.memeName}"*`, { parse_mode: 'Markdown' });
                 await memeCache.deleteUserContext(chatId);
-                await triggerFullMemeSearchDirect(bot, chatId, context.memeName);
+                await triggerFullMemeSearchDirect(bot, chatId, context.memeName, context.memeId);
 
             } else if (data.startsWith('new_blank_')) {
                 await bot.sendMessage(chatId, '🔍 *Ready for another blank template search!*\n\nUse `/blank [name]`', { parse_mode: 'Markdown' });

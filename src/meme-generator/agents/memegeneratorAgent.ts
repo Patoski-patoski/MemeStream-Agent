@@ -152,6 +152,9 @@ export async function runMemeAgent(
         let originStory = "";
         let finalSummary = "";
 
+        console.log("Direct URL", isDirectUrl);
+        console.log("memeSearchResult", memeSearchResult);
+
         if (isDirectUrl) {
             // For /meme command - use direct URL approach for faster scraping
             const directUrl = `https://imgflip.com/meme/${formattedMemeName}`;
@@ -284,6 +287,9 @@ export async function runMemeAgent(
                             Provide an engaging, informative origin story for memes. 
                             Include: when it started, how it became popular, typical usage, and cultural impact.
                             Keep it conversational but informative, around 100-250 words.
+                            Go straight to the point. No need to introduce or onboard.
+                            The provided text may include numbers, However, use extract relevant that may include the text.
+                            E.g https://imgflip.com/memegenerator/558880671/Squid-Game -> The meme image => Squid Game
                             Use emojis sparingly for readability.`
                         }]
                     },
@@ -456,18 +462,11 @@ Example format:
         if (error instanceof MemeNotFoundError) {
             if (responseHandler) {
                 await responseHandler.sendUpdate(
-                    `❌ *Could not find meme: "${formattedMemeName}"*
-
-` +
-                    `🔍 Please try:
-` +
-                    `• Check spelling
-` +
-                    `• Use popular meme names (Drake, Distracted Boyfriend, etc.)
-` +
-                    `• Try alternative names
-
-` +
+                    `❌ *Could not find meme: "${formattedMemeName}"*` +
+                    `🔍 Please try:` +
+                    `• Check spelling` +
+                    `• Use popular meme names (Drake, Distracted Boyfriend, etc.)` +
+                    `• Try alternative names` +
                     `💡 *Tip:* Search for well-known internet memes`
                 );
             }
@@ -482,34 +481,18 @@ Example format:
             await responseHandler.sendUpdate(
                 isAIOverload
                     ? `🤖 *AI Services Temporarily Busy*\n\n` +
-                    `⚡ The AI model is currently overloaded, but we're still working to get your meme data!
-
-` +
-                    `🔄 *What's happening:*
-` +
-                    `• Searching for "${formattedMemeName}" using direct methods
-` +
-                    `• Gathering available templates and images
-` +
-                    `• Skipping AI analysis to avoid delays
-
-` +
+                    `⚡ The AI model is currently overloaded, but we're still working to get your meme data!` +
+                    `🔄 *What's happening:*` +
+                    `• Searching for "${formattedMemeName}" using direct methods` +
+                    `• Gathering available templates and images` +
+                    `• Skipping AI analysis to avoid delays` +
                     `💡 *Please wait a moment...* We'll get you the essential meme info!`
-                    : `❌ *Processing Error*
-
-` +
-                    `🔧 Something went wrong while processing "${formattedMemeName}"
-
-` +
-                    `💡 *Suggestions:*
-` +
-                    `• Try a different meme name
-` +
-                    `• Check if the meme name is spelled correctly
-` +
-                    `• Use well-known meme names
-
-` +
+                    : `❌ *Processing Error*` +
+                    `🔧 Something went wrong while processing "${formattedMemeName}"` +
+                    `💡 *Suggestions:*` +
+                    `• Try a different meme name` +
+                    `• Check if the meme name is spelled correctly` +
+                    `• Use well-known meme names` +
                     `🔄 Feel free to try again!`
             );
         }
@@ -556,7 +539,8 @@ Example format:
                     };
                 }
             } catch (emergencyError) {
-                console.error(`❌ Emergency search also failed:`, emergencyError);
+                const emstr = emergencyError as string;
+                console.error(`❌ Emergency search also failed:`, emstr.substring(2000));
             }
         }
 

@@ -24,6 +24,7 @@ export interface MemeContext {
   memePageUrl: string;
   blankTemplateUrl: string;
   memeName: string;
+  memeId?: string;
   currentPage: number;        // Tracks current page per chat
   lastRequestTime?: number;    // For rate limiting & cleanup
 }
