@@ -87,7 +87,7 @@ describe('Queue Module', () => {
       if (event === 'error') errorHandler = callback;
       return mockRedisInstance;
     });
-    await import('../dist/bot/core/queue.js');
+    await import('../src/bot/core/queue');
     expect(mockRedisInstance.on).toHaveBeenCalledWith('error', expect.any(Function));
     const testError = new Error('fail');
     errorHandler!(testError);
