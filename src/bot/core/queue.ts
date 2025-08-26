@@ -11,13 +11,13 @@ const getRedisConnection = () => {
     const localRedisUrl = process.env.REDIS_URL;
 
     const connection = upstashUrl ? new Redis(upstashUrl, { maxRetriesPerRequest: null }) :
-                     localRedisUrl ? new Redis(localRedisUrl, { maxRetriesPerRequest: null }) :
-                     new Redis({
-                         host: process.env.REDIS_HOST || 'localhost',
-                         port: parseInt(process.env.REDIS_PORT || '6379'),
-                         password: process.env.REDIS_PASSWORD,
-                         maxRetriesPerRequest: null
-                     });
+        localRedisUrl ? new Redis(localRedisUrl, { maxRetriesPerRequest: null }) :
+            new Redis({
+                host: process.env.REDIS_HOST || 'localhost',
+                port: parseInt(process.env.REDIS_PORT || '6379'),
+                password: process.env.REDIS_PASSWORD,
+                maxRetriesPerRequest: null
+            });
 
     connection.on('error', (err) => {
         console.error('❌ BullMQ Redis connection error:', err);

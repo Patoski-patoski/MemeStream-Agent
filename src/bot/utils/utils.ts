@@ -22,7 +22,7 @@ export const progressMessages = [
  * @param emoji Optional emoji to prefix the progress bar with
  */
 export async function updateProgress(bot: TelegramBot, tracker: ProgressTracker, message: string, emoji?: string) {
-    const elapsed = Math.round((Date.now() - tracker.startTime) / 1000);
+    const elapsed = Math.round((Date.now() - tracker.startTime) / 1500);
     const progressBar = "█".repeat(tracker.currentStep) + "░".repeat(tracker.totalSteps - tracker.currentStep);
 
     try {
@@ -42,11 +42,11 @@ export async function updateProgress(bot: TelegramBot, tracker: ProgressTracker,
         if ( tracker.chatId && tracker.currentStep === tracker.totalSteps && !tracker.deletionScheduled) {
             tracker.deletionScheduled = true;
             setTimeout(async () => {
-                try {
+                // try {
                     await bot.deleteMessage(tracker.chatId, tracker.messageId);
-                } catch (deleteError) {
-                        console.error('Error deleting progress message:', deleteError);
-                }
+                // } catch (deleteError) {
+                        // console.error('Error deleting progress message:', deleteError);
+                // }
             }, 45000);
         }
 

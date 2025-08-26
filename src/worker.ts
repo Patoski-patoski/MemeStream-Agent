@@ -60,12 +60,20 @@ const processor = async (job: Job<MemeJobData>) => {
                 });
 
                 await bot.sendPhoto(chatId, foundMeme.url, {
-                    caption: `🎨 *Blank Template: "${foundMeme.name}"*\n\n` +
-                        `✨ *Create your own version:*\n` +
-                        `🔗 ${MEME_URL}/${formatMemeNameForUrl(foundMeme.name)}\n\n` +
-                        `💡 *Tips:*\n` +
-                        `• Right-click the image to save it\n` +
-                        `• Use the link above to add custom text\n` +
+                    caption: `🎨 *Blank Template: "${foundMeme.name}"*
+
+` +
+                        `✨ *Create your own version:*
+` +
+                        `🔗 ${MEME_URL}/${formatMemeNameForUrl(foundMeme.name)}
+
+` +
+                        `💡 *Tips:*
+` +
+                        `• Right-click the image to save it
+` +
+                        `• Use the link above to add custom text
+` +
                         `• Click buttons below for more options`,
                     parse_mode: 'Markdown',
                     reply_markup: inlineKeyboard
@@ -73,7 +81,7 @@ const processor = async (job: Job<MemeJobData>) => {
 
                 // Cache the blank meme with both the searched name and official name for future hits
                 await memeCache.cacheBlankMeme(memeName, foundMeme.url);
-                
+
 
                 return { success: true, url: foundMeme.url };
 
@@ -88,7 +96,9 @@ const processor = async (job: Job<MemeJobData>) => {
         console.log(`🕵️‍♂️ Step 2: Falling back to web scraping method`);
 
         await bot.editMessageText(
-            `🤔 *Meme not found in quick database...*\n\n` +
+            `🤔 *Meme not found in quick database...*
+
+` +
             `🕵️‍♂️ Starting a deep search now. This might take a moment!`,
             {
                 chat_id: chatId,
@@ -112,12 +122,21 @@ const processor = async (job: Job<MemeJobData>) => {
 
             if (!memeSearchResult || !memeSearchResult.memeBlankImgUrl) {
                 await bot.editMessageText(
-                    `❌ *Deep search failed*\n\n` +
-                    `🔍 No template found for "${memeName}"\n\n` +
-                    `💡 *Suggestions:*\n` +
-                    `• Try a different meme name\n` +
-                    `• Check spelling\n` +
-                    `• Use popular meme names\n\n` +
+                    `❌ *Deep search failed*
+
+` +
+                    `🔍 No template found for "${memeName}"
+
+` +
+                    `💡 *Suggestions:*
+` +
+                    `• Try a different meme name
+` +
+                    `• Check spelling
+` +
+                    `• Use popular meme names
+
+` +
                     `🎭 *Popular searches:* Drake, Distracted Boyfriend, This is Fine, Expanding Brain`,
                     {
                         chat_id: chatId,
@@ -163,12 +182,20 @@ const processor = async (job: Job<MemeJobData>) => {
             };
 
             await bot.sendPhoto(chatId, memeSearchResult.memeBlankImgUrl, {
-                caption: `🎨 *Blank Template: "${memeName}"*\n\n` +
-                    `✨ *Create your own version:*\n` +
-                    `🔗 ${MEME_URL}/${formatMemeNameForUrl(memeName)}\n\n` +
-                    `💡 *Tips:*\n` +
-                    `• Right-click the image to save it\n` +
-                    `• Use the link above to add custom text\n` +
+                caption: `🎨 *Blank Template: "${memeName}"*
+
+` +
+                    `✨ *Create your own version:*
+` +
+                    `🔗 ${MEME_URL}/${formatMemeNameForUrl(memeName)}
+
+` +
+                    `💡 *Tips:*
+` +
+                    `• Right-click the image to save it
+` +
+                    `• Use the link above to add custom text
+` +
                     `• Click buttons below for more options`,
                 parse_mode: 'Markdown',
                 reply_markup: inlineKeyboard
@@ -181,7 +208,9 @@ const processor = async (job: Job<MemeJobData>) => {
             console.error(`❌ Job ${job.id} (via scraping) failed for meme "${memeName}":`, scrapingError);
             try {
                 await bot.editMessageText(
-                    `❌ *An error occurred during the deep search*\n\n` +
+                    `❌ *An error occurred during the deep search*
+
+` +
                     `🔧 Please try again later or try a different meme name.`,
                     {
                         chat_id: chatId,
@@ -205,14 +234,24 @@ const processor = async (job: Job<MemeJobData>) => {
         // Final fallback - try to send a helpful error message
         try {
             await bot.editMessageText(
-                `❌ *Search failed for "${memeName}"*\n\n` +
-                `🔧 *What went wrong:*\n` +
-                `• Meme not in our database\n` +
-                `• Network connectivity issues\n` +
-                `• ImgFlip API temporarily unavailable\n\n` +
-                `💡 *Try:*\n` +
-                `• Different meme name\n` +
-                `• Check spelling\n` +
+                `❌ *Search failed for "${memeName}"*
+
+` +
+                `🔧 *What went wrong:*
+` +
+                `• Meme not in our database
+` +
+                `• Network connectivity issues
+` +
+                `• Imgflip API temporarily unavailable
+
+` +
+                `💡 *Try:*
+` +
+                `• Different meme name
+` +
+                `• Check spelling
+` +
                 `• Popular memes: Drake, Distracted Boyfriend, This is Fine`,
                 {
                     chat_id: chatId,
@@ -257,3 +296,5 @@ async function gracefulShutdown() {
 
 process.on('SIGTERM', gracefulShutdown);
 process.on('SIGINT', gracefulShutdown);
+
+export { worker, processor };

@@ -1,0 +1,65 @@
+services:
+  - type: web
+    name: memestream-server
+    env: docker
+    image: your-dockerhub-username/memestream-agent:latest # IMPORTANT: Replace with your actual Docker Hub image name
+    buildCommand: "" # Image is pre-built, so no build command needed here
+    startCommand: "npm run start:server"
+    envVars:
+      # --- Environment Variables from .env.example (to be set in Render dashboard) ---
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: MODEL_NAME
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: MEME_URL # This might be overridden by Render's service URL
+        sync: false
+      - key: TAG_MEME
+        sync: false
+      - key: WEBHOOK_URL # This might be overridden by Render's service URL
+        sync: false
+      - key: PORT # This might be overridden by Render's service port
+        sync: false
+      - key: REDIS_HOST
+        sync: false
+      - key: REDIS_PORT
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: UPSTASH_REDIS_URL
+        sync: false
+    ports:
+      - port: 3300 # Port your Express server listens on
+
+  - type: worker
+    name: memestream-worker
+    env: docker
+    image: your-dockerhub-username/memestream-agent:latest # IMPORTANT: Replace with your actual Docker Hub image name
+    buildCommand: "" # Image is pre-built, so no build command needed here
+    startCommand: "npm run start:worker"
+    envVars:
+      # --- Environment Variables from .env.example (to be set in Render dashboard) ---
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: MODEL_NAME
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: MEME_URL
+        sync: false
+      - key: TAG_MEME
+        sync: false
+      - key: WEBHOOK_URL
+        sync: false
+      - key: PORT
+        sync: false
+      - key: REDIS_HOST
+        sync: false
+      - key: REDIS_PORT
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: UPSTASH_REDIS_URL
+        sync: false
+    numInstances: 3 # Start with 3 worker instances

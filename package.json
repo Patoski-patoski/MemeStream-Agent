@@ -7,7 +7,7 @@
     "start:worker": "node dist/worker.js",
     "dev": "nodemon --watch 'src/**/*.ts' --exec 'ts-node' src/bot/core/server.ts",
     "build": "tsc",
-    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test": "node --experimental-vm-modules --trace-warnings node_modules/jest/bin/jest.js --detectOpenHandles",
     "lint": "eslint . --ext .ts"
   },
   "keywords": [],
