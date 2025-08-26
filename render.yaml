@@ -31,8 +31,7 @@ services:
   - type: worker
     name: memestream-worker
     env: docker
-    docker:
-      image: patrickpatoski/meme-bot:latest
+    dockerfilePath: ./Dockerfile
     startCommand: "npm run start:worker"
     envVars:
       - key: TELEGRAM_BOT_TOKEN
