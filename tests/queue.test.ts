@@ -43,14 +43,14 @@ describe('Queue Module', () => {
 
   it('should create Redis connection with Upstash URL', async () => {
     process.env.UPSTASH_REDIS_URL = 'redis://upstash-url';
-    await import('../dist/bot/core/queue.js');
+    await import('../src/bot/core/queue');
     const { Redis } = await import('ioredis');
     expect(Redis).toHaveBeenCalledWith('redis://upstash-url', { maxRetriesPerRequest: null });
   });
 
   it('should create Redis connection with REDIS_URL', async () => {
     process.env.REDIS_URL = 'redis://localhost:6379';
-    await import('../dist/bot/core/queue.js');
+    await import('../src/bot/core/queue');
     const { Redis } = await import('ioredis');
     expect(Redis).toHaveBeenCalledWith('redis://localhost:6379', { maxRetriesPerRequest: null });
   });
@@ -59,7 +59,7 @@ describe('Queue Module', () => {
     process.env.REDIS_HOST = 'custom-host';
     process.env.REDIS_PORT = '6380';
     process.env.REDIS_PASSWORD = 'secret';
-    await import('../dist/bot/core/queue.js');
+    await import('../src/bot/core/queue');
     const { Redis } = await import('ioredis');
     expect(Redis).toHaveBeenCalledWith({
       host: 'custom-host',
@@ -70,7 +70,7 @@ describe('Queue Module', () => {
   });
 
   it('should use default Redis config when no env vars are set', async () => {
-    await import('../dist/bot/core/queue.js');
+    await import('../src/bot/core/queue');
     const { Redis } = await import('ioredis');
     expect(Redis).toHaveBeenCalledWith({
       host: 'localhost',
@@ -95,7 +95,7 @@ describe('Queue Module', () => {
   });
 
   it('should create queue with correct configuration', async () => {
-    await import('../dist/bot/core/queue.js');
+    await import('../src/bot/core/queue');
     const { Queue } = await import('bullmq');
     expect(Queue).toHaveBeenCalledWith('meme-generation', expect.objectContaining({
       connection: mockRedisInstance,
@@ -104,12 +104,12 @@ describe('Queue Module', () => {
   });
 
   it('should log successful initialization', async () => {
-    await import('../dist/bot/core/queue.js');
+    await import('../src/bot/core/queue');
     expect(consoleSpy).toHaveBeenCalledWith('✅ BullMQ Queue initialized');
   });
 
   it('should export memeQueue', async () => {
-    const module = await import('../dist/bot/core/queue.js');
+    const module = await import('../src/bot/core/queue');
     expect(module.memeQueue).toBeDefined();
     expect(module.memeQueue).toBe(mockQueueInstance);
   });
