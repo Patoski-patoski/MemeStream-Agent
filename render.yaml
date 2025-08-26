@@ -3,36 +3,6 @@ services:
     name: memestream-server
     env: docker
     dockerfilePath: ./Dockerfile
-    startCommand: "npm run start:server"
-    envVars:
-      - key: TELEGRAM_BOT_TOKEN
-        sync: false
-      - key: MODEL_NAME
-        sync: false
-      - key: GEMINI_API_KEY
-        sync: false
-      - key: MEME_URL
-        sync: false
-      - key: TAG_MEME
-        sync: false
-      - key: WEBHOOK_URL
-        sync: false
-      - key: PORT
-        value: "3300" # Render expects app to bind to this PORT
-      - key: REDIS_HOST
-        sync: false
-      - key: REDIS_PORT
-        sync: false
-      - key: REDIS_URL
-        sync: false
-      - key: UPSTASH_REDIS_URL
-        sync: false
-
-  - type: worker
-    name: memestream-worker
-    env: docker
-    dockerfilePath: ./Dockerfile
-    startCommand: "npm run start:worker"
     envVars:
       - key: TELEGRAM_BOT_TOKEN
         sync: false
@@ -56,4 +26,32 @@ services:
         sync: false
       - key: UPSTASH_REDIS_URL
         sync: false
+
+  - type: worker
+    name: memestream-worker
+    env: docker
+    dockerfilePath: ./Dockerfile
     numInstances: 3
+    envVars:
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: MODEL_NAME
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: MEME_URL
+        sync: false
+      - key: TAG_MEME
+        sync: false
+      - key: WEBHOOK_URL
+        sync: false
+      - key: PORT
+        value: "3300"
+      - key: REDIS_HOST
+        sync: false
+      - key: REDIS_PORT
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: UPSTASH_REDIS_URL
+        sync: false
