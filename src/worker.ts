@@ -13,6 +13,15 @@ const MEME_URL = process.env.MEME_URL;
 
 console.log(`Worker started, waiting for jobs in queue: ${memeQueue.name}`);
 
+/**
+ * Processes a single meme generation job.
+ *
+ * The processor first checks the Imgflip API cache for the given meme name. If found, it sends the blank template to the user.
+ * If not found, it falls back to web scraping. If the scraping fails, it sends an error message to the user and re-throws the error to let BullMQ handle retries.
+ *
+ * @param {Job<MemeJobData>} job The job to process, containing the chat ID, meme name, and loading message ID.
+ * @returns {Promise<{ success: boolean, url?: string, error?: string }>} A promise resolving to an object with a boolean success indicator, and optionally a URL or error message.
+ */
 const processor = async (job: Job<MemeJobData>) => {
     const { chatId, memeName, loadingMessageId } = job.data;
     console.log(`Processing job ${job.id} for meme "${memeName}"`);
@@ -60,20 +69,12 @@ const processor = async (job: Job<MemeJobData>) => {
                 });
 
                 await bot.sendPhoto(chatId, foundMeme.url, {
-                    caption: `🎨 *Blank Template: "${foundMeme.name}"*
-
-` +
-                        `✨ *Create your own version:*
-` +
-                        `🔗 ${MEME_URL}/${formatMemeNameForUrl(foundMeme.name)}
-
-` +
-                        `💡 *Tips:*
-` +
-                        `• Right-click the image to save it
-` +
-                        `• Use the link above to add custom text
-` +
+                    caption: `🎨 *Blank Template: "${foundMeme.name}"*` +
+                        `✨ *Create your own version:*` +
+                        `🔗 ${MEME_URL}/${formatMemeNameForUrl(foundMeme.name)}` +
+                        `💡 *Tips:*` +
+                        `• Right-click the image to save it` +
+                        `• Use the link above to add custom text` +
                         `• Click buttons below for more options`,
                     parse_mode: 'Markdown',
                     reply_markup: inlineKeyboard
@@ -96,9 +97,7 @@ const processor = async (job: Job<MemeJobData>) => {
         console.log(`🕵️‍♂️ Step 2: Falling back to web scraping method`);
 
         await bot.editMessageText(
-            `🤔 *Meme not found in quick database...*
-
-` +
+            `🤔 *Meme not found in quick database...*` +
             `🕵️‍♂️ Starting a deep search now. This might take a moment!`,
             {
                 chat_id: chatId,
@@ -122,21 +121,12 @@ const processor = async (job: Job<MemeJobData>) => {
 
             if (!memeSearchResult || !memeSearchResult.memeBlankImgUrl) {
                 await bot.editMessageText(
-                    `❌ *Deep search failed*
-
-` +
-                    `🔍 No template found for "${memeName}"
-
-` +
-                    `💡 *Suggestions:*
-` +
-                    `• Try a different meme name
-` +
-                    `• Check spelling
-` +
-                    `• Use popular meme names
-
-` +
+                    `❌ *Deep search failed*` +
+                    `🔍 No template found for "${memeName}"` +
+                    `💡 *Suggestions:*` +
+                    `• Try a different meme name` +
+                    `• Check spelling` +
+                    `• Use popular meme names` +
                     `🎭 *Popular searches:* Drake, Distracted Boyfriend, This is Fine, Expanding Brain`,
                     {
                         chat_id: chatId,
@@ -182,20 +172,12 @@ const processor = async (job: Job<MemeJobData>) => {
             };
 
             await bot.sendPhoto(chatId, memeSearchResult.memeBlankImgUrl, {
-                caption: `🎨 *Blank Template: "${memeName}"*
-
-` +
-                    `✨ *Create your own version:*
-` +
-                    `🔗 ${MEME_URL}/${formatMemeNameForUrl(memeName)}
-
-` +
-                    `💡 *Tips:*
-` +
-                    `• Right-click the image to save it
-` +
-                    `• Use the link above to add custom text
-` +
+                caption: `🎨 *Blank Template: "${memeName}"*` +
+                    `✨ *Create your own version:*` +
+                    `🔗 ${MEME_URL}/${formatMemeNameForUrl(memeName)}` +
+                    `💡 *Tips:*` +
+                    `• Right-click the image to save it` +
+                    `• Use the link above to add custom text` +
                     `• Click buttons below for more options`,
                 parse_mode: 'Markdown',
                 reply_markup: inlineKeyboard
@@ -208,9 +190,7 @@ const processor = async (job: Job<MemeJobData>) => {
             console.error(`❌ Job ${job.id} (via scraping) failed for meme "${memeName}":`, scrapingError);
             try {
                 await bot.editMessageText(
-                    `❌ *An error occurred during the deep search*
-
-` +
+                    `❌ *An error occurred during the deep search*` +
                     `🔧 Please try again later or try a different meme name.`,
                     {
                         chat_id: chatId,
@@ -234,24 +214,14 @@ const processor = async (job: Job<MemeJobData>) => {
         // Final fallback - try to send a helpful error message
         try {
             await bot.editMessageText(
-                `❌ *Search failed for "${memeName}"*
-
-` +
-                `🔧 *What went wrong:*
-` +
-                `• Meme not in our database
-` +
-                `• Network connectivity issues
-` +
-                `• Imgflip API temporarily unavailable
-
-` +
-                `💡 *Try:*
-` +
-                `• Different meme name
-` +
-                `• Check spelling
-` +
+                `❌ *Search failed for "${memeName}"*` +
+                `🔧 *What went wrong:*` +
+                `• Meme not in our database` +
+                `• Network connectivity issues` +
+                `• Imgflip API temporarily unavailable` +
+                `💡 *Try:*` +
+                `• Different meme name` +
+                `• Check spelling` +
                 `• Popular memes: Drake, Distracted Boyfriend, This is Fine`,
                 {
                     chat_id: chatId,
@@ -286,6 +256,12 @@ worker.on('error', (err) => {
 
 console.log(`✅ Worker is listening for jobs on queue: ${memeQueue.name}`);
 
+/**
+ * Performs a graceful shutdown of the worker, closing the queue connection,
+ * closing the browser instance, and disconnecting from the Redis cache.
+ * This function is bound to the SIGTERM and SIGINT events, allowing the process
+ * to exit cleanly when terminated.
+ */
 async function gracefulShutdown() {
     console.log('Shutting down worker...');
     await worker.close();
