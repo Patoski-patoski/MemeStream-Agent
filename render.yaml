@@ -2,8 +2,7 @@ services:
   - type: web
     name: memestream-server
     env: docker
-    docker:
-      image: patrickpatoski/meme-bot:latest # prebuilt Docker image
+    dockerfilePath: ./Dockerfile
     startCommand: "npm run start:server"
     envVars:
       - key: TELEGRAM_BOT_TOKEN
