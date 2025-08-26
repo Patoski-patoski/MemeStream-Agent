@@ -2,7 +2,7 @@ services:
   - type: web
     name: memestream-server
     env: docker
-    image: patrickpatoski/memestream-agent:latest # IMPORTANT: Replace with your actual Docker Hub image name
+    image: patrickpatoski/meme-bot:latest 
     buildCommand: "" # Image is pre-built, so no build command needed here
     startCommand: "npm run start:server"
     envVars:
@@ -35,7 +35,7 @@ services:
   - type: worker
     name: memestream-worker
     env: docker
-    image: patrickpatoski/memestream-agent:latest # IMPORTANT: Replace with your actual Docker Hub image name
+    image: patrickpatoski/meme-bot:latest
     buildCommand: "" # Image is pre-built, so no build command needed here
     startCommand: "npm run start:worker"
     envVars:
