@@ -1,4 +1,5 @@
-export default {
+module.exports = { // eslint-disable-line no-undef
+
       apps: [
         {
           name: "memestream-server",

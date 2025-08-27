@@ -28,7 +28,7 @@ RUN --mount=type=cache,target=/root/.npm \
 
 # Copy built application from builder stage
 COPY --from=builder /app/dist ./dist
-COPY ecosystem.config.js ./
+COPY ecosystem.config.cjs ./
 
 # Create non-root user for security
 RUN groupadd -r botuser && useradd -r -g botuser -G audio,video botuser \
