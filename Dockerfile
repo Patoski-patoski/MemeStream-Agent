@@ -1,24 +1,21 @@
 # syntax=docker/dockerfile:1
 
-# Build stage - use regular Node.js image for building
+# Build stage
 FROM node:20-slim as builder
-
 WORKDIR /app
 
 # Copy package files
 COPY package*.json tsconfig.json ./
 
 # Install all dependencies (including dev dependencies for build)
-RUN --mount=type=cache,target=/root/.npm \
-    npm ci
+RUN --mount=type=cache,target=/root/.npm npm ci
 
 # Copy source code and build
 COPY . .
 RUN npm run build
 
-# Production stage - use Playwright image for runtime
+#  Playwright image for runtime
 FROM mcr.microsoft.com/playwright:v1.54.1-noble
-
 WORKDIR /app
 
 # Copy package files
@@ -31,6 +28,7 @@ RUN --mount=type=cache,target=/root/.npm \
 
 # Copy built application from builder stage
 COPY --from=builder /app/dist ./dist
+COPY ecosystem.config.js ./
 
 # Create non-root user for security
 RUN groupadd -r botuser && useradd -r -g botuser -G audio,video botuser \

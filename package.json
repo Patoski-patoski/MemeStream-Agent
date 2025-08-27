@@ -2,9 +2,7 @@
   "name": "memeagentstream-app",
   "version": "1.0.0",
   "scripts": {
-    "start": "npm-run-all --parallel start:server start:worker",
-    "start:server": "node dist/bot/core/server.js",
-    "start:worker": "node dist/worker.js",
+    "start": "pm2-runtime start ecosystem.config.cjs",
     "dev": "nodemon --watch 'src/**/*.ts' --exec 'ts-node' src/bot/core/server.ts",
     "build": "tsc",
     "test": "node --experimental-vm-modules --trace-warnings node_modules/jest/bin/jest.js --detectOpenHandles",
@@ -25,10 +23,11 @@
     "express": "^5.1.0",
     "ioredis": "^5.7.0",
     "node-telegram-bot-api": "^0.66.0",
+    "npm-run-all": "^4.1.5",
     "playwright": "1.54.1",
+    "pm2": "^6.0.8",
     "typescript": "^5.8.3",
-    "zod": "^4.0.10",
-    "npm-run-all": "^4.1.5"
+    "zod": "^4.0.10"
   },
   "devDependencies": {
     "@eslint/js": "^9.33.0",
@@ -43,7 +42,6 @@
     "jest-environment-jsdom": "^30.0.5",
     "jiti": "^2.5.1",
     "nodemon": "^3.1.10",
-    
     "supertest": "^7.1.4",
     "ts-jest": "^29.4.1",
     "ts-node": "^10.9.2",
