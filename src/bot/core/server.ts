@@ -5,9 +5,7 @@ import http from 'http';
 import TelegramBot from 'node-telegram-bot-api';
 import { startBot } from './bot.js';
 
-if (process.env.NODE_ENV !== 'production') {
-  dotenv.config();
-}
+dotenv.config();
 
 export const app = express();
 const PORT = process.env.PORT || 3300;

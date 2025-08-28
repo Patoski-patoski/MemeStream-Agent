@@ -1,6 +1,5 @@
 // src/bot/core/cache.ts
 import { Redis } from 'ioredis';
-// import axios from 'axios';
 import {
     MemeContext,
     CachedMemeData,
@@ -24,6 +23,13 @@ class MemeCache {
     private readonly USER_CONTEXT_PREFIX = 'user_context:';
     private readonly API_MEMES_KEY = 'api_memes';
 
+
+    /**
+     * MemeCache constructor. Initializes a connection to a Redis server and
+     * logs messages for connection events. It checks for environment variables
+     * UPSTASH_REDIS_URL, REDIS_URL, and uses them or defaults to connect to
+     * Redis. The connection is configured with error and other event handlers.
+     */
     constructor() {
         // Check if we have an Upstash URL (production) or local Redis (development)
         const upstashUrl = process.env.UPSTASH_REDIS_URL;
@@ -57,6 +63,26 @@ class MemeCache {
         });
     }
 
+    /**
+     * Configuration for connecting to Upstash Redis.
+     * @returns {ioredis.RedisOptions} configuration object
+     * @description
+     * The configuration options used to connect to Upstash Redis are:
+     * - retryStrategy: a function that takes the number of times a command has been retried
+     *   and returns the delay in milliseconds to wait before retrying the command.
+     *   The maximum delay is 3 seconds.
+     * - enableReadyCheck: false, which means that the ready check is disabled.
+     *   This is because Upstash Redis does not support the ready check.
+     * - lazyConnect: true, which means that the connection is established lazily.
+     *   This is useful in environments where the Redis server might not be available
+     *   when the client is created.
+     * - maxRetriesPerRequest: 3, which means that each command will be retried up to
+     *   3 times in case of an error.
+     * - connectTimeout: 10000, which is the time in milliseconds that the client
+     *   waits for the connection to be established.
+     * - lazyConnectTimeout: 10000, which is the time in milliseconds that the client
+     *   waits before retrying to connect if the initial connection fails.
+     */
     getUpstashConfig() {
         return {
             retryStrategy: (times: number) => Math.min(times * 100, 3000),
