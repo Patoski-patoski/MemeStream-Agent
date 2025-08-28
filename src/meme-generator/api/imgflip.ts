@@ -13,8 +13,13 @@ export const getMemeFromImgFlip = async (memeName: string): Promise<ImgflipMeme 
     console.log(`Searching for meme: "${memeName}"`);
     const memes = await memeCache.getMemesFromCacheOrApi();
 
-    const lowerCaseMemeName = memeName.toLowerCase();
-    const meme = memes.find(m => m.name.toLowerCase().includes(lowerCaseMemeName));
+    const lowerCaseMemeName = memeName.trim().toLowerCase();
+    const searchTerms = lowerCaseMemeName.split(/\s+/);
+
+    const meme = memes.find(m => {
+      const memeNameLower = m.name.toLowerCase();
+      return searchTerms.every(term => memeNameLower.includes(term));
+    });
     console.log("meme", meme);
 
 
