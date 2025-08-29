@@ -120,26 +120,32 @@ describe('Meme Generator Tools', () => {
 
             // Mock the search input element
             const mockSearchInput = {
-                fill: jest.fn().mockReturnValue(undefined!),
-                press: jest.fn().mockReturnValue(undefined!),
+                fill: jest.fn().mockResolvedValue(undefined!),
+                press: jest.fn().mockResolvedValue(undefined!),
+                click: jest.fn().mockResolvedValue(undefined!),
             };
 
             // Mock the first result link element
             const mockFirstResultLink = {
-                getAttribute: jest.fn().mockReturnValue('/meme/test-meme'),
+                getAttribute: jest.fn().mockResolvedValue('/meme/test-meme'),
             };
 
             // Mock the preview image element
             const mockPreviewImg = {
-                getAttribute: jest.fn().mockReturnValue('/s/meme/test-meme.jpg'),
+                getAttribute: jest.fn().mockResolvedValue('/s/meme/test-meme.jpg'),
             };
 
             // Setup page mock calls
-            mockPage.$.mockImplementation((selector) => {
-                if (selector === SELECTORS.SEARCH_INPUT) return Promise.resolve(mockSearchInput);
-                if (selector === SELECTORS.FIRST_RESULT) return Promise.resolve(mockFirstResultLink);
-                if (selector === SELECTORS.PREVIEW_IMAGE) return Promise.resolve(mockPreviewImg);
-                return Promise.resolve(null);
+            mockPage.waitForSelector.mockImplementation(async (selector) => {
+                if (selector === SELECTORS.SEARCH_INPUT) return mockSearchInput as any;
+                if (selector === SELECTORS.FIRST_RESULT) return mockFirstResultLink as any;
+                return null;
+            });
+
+            mockPage.$.mockImplementation(async (selector) => {
+                if (selector === SELECTORS.FIRST_RESULT) return mockFirstResultLink as any;
+                if (selector === SELECTORS.PREVIEW_IMAGE) return mockPreviewImg as any;
+                return null;
             });
 
             // Mock utils functions
@@ -152,7 +158,8 @@ describe('Meme Generator Tools', () => {
             expect(result).toEqual(expectedResult);
             expect(mockPage.goto).toHaveBeenCalledWith('https://imgflip.com/memegenerator',
                 { waitUntil: 'domcontentloaded', timeout: 30000 });
-            expect(mockPage.$).toHaveBeenCalledWith(SELECTORS.SEARCH_INPUT);
+            expect(mockPage.waitForSelector).toHaveBeenCalledWith(SELECTORS.SEARCH_INPUT, { state: 'visible', timeout: TIMEOUTS.ELEMENT_WAIT });
+            expect(mockSearchInput.click).toHaveBeenCalled();
             expect(mockSearchInput.fill).toHaveBeenCalledWith(memeName);
             expect(mockSearchInput.press).toHaveBeenCalledWith('Enter');
             expect(mockPage.waitForSelector).toHaveBeenCalledWith(SELECTORS.FIRST_RESULT, { timeout: TIMEOUTS.ELEMENT_WAIT });
@@ -161,28 +168,34 @@ describe('Meme Generator Tools', () => {
         it('should return null when search input is not found', async () => {
             const memeName = 'test-meme';
 
-            mockPage.$.mockReturnValue(null!);
+            mockPage.waitForSelector.mockResolvedValue(null!);
 
             const result = await searchMemeAndGetFirstLink(mockPage as unknown as Page, memeName);
 
             expect(result).toBeNull();
             expect(mockPage.goto).toHaveBeenCalledWith('https://imgflip.com/memegenerator',
                 { waitUntil: 'domcontentloaded', timeout: 30000 });
-            expect(mockPage.$).toHaveBeenCalledWith('#mm-search');
+            expect(mockPage.waitForSelector).toHaveBeenCalledWith(SELECTORS.SEARCH_INPUT, { state: 'visible', timeout: TIMEOUTS.ELEMENT_WAIT });
         });
 
         it('should return null when first result link is not found', async () => {
             const memeName = 'test-meme';
 
             const mockSearchInput = {
-                fill: jest.fn().mockReturnValue(undefined!),
-                press: jest.fn().mockReturnValue(undefined!),
+                fill: jest.fn().mockResolvedValue(undefined!),
+                press: jest.fn().mockResolvedValue(undefined!),
+                click: jest.fn().mockResolvedValue(undefined!),
             };
 
-            mockPage.$.mockImplementation((selector) => {
-                if (selector === SELECTORS.SEARCH_INPUT) return Promise.resolve(mockSearchInput);
-                if (selector === SELECTORS.FIRST_RESULT) return Promise.resolve(null);
-                return Promise.resolve(null);
+            mockPage.waitForSelector.mockImplementation(async (selector) => {
+                if (selector === SELECTORS.SEARCH_INPUT) return mockSearchInput as any;
+                if (selector === SELECTORS.FIRST_RESULT) return {} as any; // Mock element handle
+                return null;
+            });
+
+            mockPage.$.mockImplementation(async (selector) => {
+                if (selector === SELECTORS.FIRST_RESULT) return null;
+                return null;
             });
 
             const result = await searchMemeAndGetFirstLink(mockPage as unknown as Page, memeName);
