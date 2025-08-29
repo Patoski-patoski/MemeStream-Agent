@@ -36,7 +36,12 @@ class MemeGeneratorError extends Error {
  * Performs a search operation with retry logic
  */
 async function performSearch(page: Page, memeName: string): Promise<void> {
-  const searchInput = await page.waitForSelector(SELECTORS.SEARCH_INPUT, { state: 'visible', timeout: TIMEOUTS.ELEMENT_WAIT });
+  const searchInput = await page.waitForSelector(SELECTORS.SEARCH_INPUT,
+    {
+      state: 'visible',
+      timeout: TIMEOUTS.ELEMENT_WAIT
+    }
+  );
   if (!searchInput) {
     throw new MemeGeneratorError("Search input not found on page", "search");
   }

@@ -127,24 +127,24 @@ describe('Meme Generator Tools', () => {
 
             // Mock the first result link element
             const mockFirstResultLink = {
-                getAttribute: jest.fn().mockResolvedValue('/meme/test-meme'),
+                getAttribute: jest.fn().mockResolvedValue('/meme/test-meme' as never),
             };
 
             // Mock the preview image element
             const mockPreviewImg = {
-                getAttribute: jest.fn().mockResolvedValue('/s/meme/test-meme.jpg'),
+                getAttribute: jest.fn().mockResolvedValue('/s/meme/test-meme.jpg' as never),
             };
 
             // Setup page mock calls
             mockPage.waitForSelector.mockImplementation(async (selector) => {
-                if (selector === SELECTORS.SEARCH_INPUT) return mockSearchInput as any;
-                if (selector === SELECTORS.FIRST_RESULT) return mockFirstResultLink as any;
+                if (selector === SELECTORS.SEARCH_INPUT) return mockSearchInput;
+                if (selector === SELECTORS.FIRST_RESULT) return mockFirstResultLink;
                 return null;
             });
 
             mockPage.$.mockImplementation(async (selector) => {
-                if (selector === SELECTORS.FIRST_RESULT) return mockFirstResultLink as any;
-                if (selector === SELECTORS.PREVIEW_IMAGE) return mockPreviewImg as any;
+                if (selector === SELECTORS.FIRST_RESULT) return mockFirstResultLink;
+                if (selector === SELECTORS.PREVIEW_IMAGE) return mockPreviewImg;
                 return null;
             });
 
@@ -188,8 +188,8 @@ describe('Meme Generator Tools', () => {
             };
 
             mockPage.waitForSelector.mockImplementation(async (selector) => {
-                if (selector === SELECTORS.SEARCH_INPUT) return mockSearchInput as any;
-                if (selector === SELECTORS.FIRST_RESULT) return {} as any; // Mock element handle
+                if (selector === SELECTORS.SEARCH_INPUT) return mockSearchInput;
+                if (selector === SELECTORS.FIRST_RESULT) return {}; // Mock element handle
                 return null;
             });
 
