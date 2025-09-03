@@ -77,9 +77,15 @@ export const setupBotCommands = async (bot: TelegramBot) => {
 export const handleStartCommand = (bot: TelegramBot) => {
     bot.onText(/^\/start$/, (msg) => {
         const chatId = msg.chat.id;
+        const firstName = msg.from?.first_name;
+
+        let welcomeMessage = '🎭 *Welcome to Meme Generator Bot!* 🎭\n\n';
+        if (firstName) {
+            welcomeMessage = `🎭 *Welcome, ${firstName}, to Meme Generator Bot!* 🎭\n\n`;
+        }
 
         bot.sendMessage(chatId,
-            '🎭 *Welcome to Meme Generator Bot!* 🎭\n\n' +
+            welcomeMessage +
             '🚀 I can help you find any meme and its history!\n\n' +
             '📝 *Commands:*' +
             '• `/meme [name]` - Full meme search with history' +
@@ -157,8 +163,8 @@ export const handleBlankMemeCommand = (bot: TelegramBot) => {
         }
 
         const loadingMsg = await bot.sendMessage(chatId,
-            '🔍 *Searching for blank template...*\n\n' +
-            `📋 Looking up "${memeName}"...`,
+            '🎨✨ *Summoning your template...*\n\n' +
+            `Hold on tight while I find the perfect canvas for "${memeName}"!`,
             { parse_mode: 'Markdown' }
         );
 
@@ -185,17 +191,13 @@ export const handleBlankMemeCommand = (bot: TelegramBot) => {
 
                 if (!template) {
                     await bot.editMessageText(
-                        '❌ *Blank template not found*\n\n' +
-                        `🔍 No blank template found for "${memeName}"` +
-                        `💡 *Suggestions:*` +
-                        `\n` +
-                        `• Try a different meme name` +
-                        `\n` +
-                        `• Check spelling` +
-                        `\n` +
-                        `• Use popular meme names` +
-                        `\n` +
-                        `🎭 *Popular searches:* Drake, Distracted Boyfriend, This is Fine`,
+                        '😕 *Oh no, template not found!* 😕\n\n' +
+                        `I couldn't find a blank template for "${memeName}".\n\n` +
+                        '**💡 Here are a few ideas:**\n' +
+                        '• Double-check your spelling.\n' +
+                        '• Try a slightly different name.\n' +
+                        '• Use one of these popular memes: `Drake Hotline Bling`, `Distracted Boyfriend`, `This is Fine`.\n\n' +
+                        'Keep trying, you\'ll find it! 🕵️‍♂️',
                         {
                             chat_id: chatId,
                             message_id: loadingMsg.message_id,
@@ -241,13 +243,13 @@ export const handleBlankMemeCommand = (bot: TelegramBot) => {
                 await bot.deleteMessage(chatId, loadingMsg.message_id);
 
                 await bot.sendPhoto(chatId, template.url, {
-                    caption: `🎨 *Blank Template: "${template.name}"*\n\n` +
-                        `✨ *Create your own version:*` +
-                        `🔗 ${template.pageUrl}\n\n` +
-                        `💡 *Tips:*` +
-                        `• Right-click the image to save it` +
-                        `• Use the link above to add custom text` +
-                        `• Click buttons below for more options`,
+                    caption: `🎉 *Success! Here is your blank "${template.name}" template!* 🎉\n\n` + 
+                        `Ready to make some magic? 🪄\n\n` + 
+                        `*How to use it:*\n` + 
+                        `1️⃣ *Save it:* Right-click or long-press the image.\n` + 
+                        `2️⃣ *Caption it:* [Click here to add text online](${template.pageUrl})\n` + 
+                        `3️⃣ *Explore more:* Use the buttons below for examples or a full meme deep-dive!\n\n` + 
+                        `Happy meme-making! 😄`,
                     parse_mode: 'Markdown',
                     reply_markup: inlineKeyboard
                 });
@@ -394,10 +396,11 @@ export const handleMemeCommand = (bot: TelegramBot) => {
                 : `💡 *Popular searches:* Drake, Distracted Boyfriend, This is Fine`;
 
             await bot.sendMessage(chatId,
-                '✅ *Meme search completed successfully!* ✅\n\n' +
-                '🎨 Use the blank template to create your own\n' +
-                '✨ Click "Create Your Own" to edit online\n' +
-                '🔄 Search for another meme with `/meme [name]`\n\n' +
+                `🏁 *And that's a wrap on "${memeName}"!* 🏁\n\n` +
+                `You're now an expert. What's next?\n\n` +
+                `🎨 *Get Creative:* Grab the blank template.\n` +
+                `🌐 *Easy Mode:* [Click here to caption it online](${cachedMeme.memePageUrl})\n` +
+                `🔄 *Another Round?:* Use \\/meme [new name]\\n` +
                 tipMessage,
                 {
                     parse_mode: 'Markdown',
@@ -603,10 +606,13 @@ const triggerFullMemeSearchDirect = async (bot: TelegramBot, chatId: number, mem
                         : `💡 *Popular searches:* Drake, Distracted Boyfriend, This is Fine`;
 
                     await bot.sendMessage(chatId,
-                        '✅ *Meme search completed successfully!* ✅\n\n' +
-                        '🎨 Use the blank template to create your own\n' +
-                        '✨ Click "Create Your Own" to edit online\n' +
-                        '🔄 Search for another meme with `/meme [name]`\n\n' +
+                        `🏁 *And that's a wrap on "${memeName}"!* 🏁\n\n` +
+                        `You're now an expert. What's next?\n\n` +
+                        `🎨 *Get Creative:* Grab the blank template.\n` +
+                        `🌐 *Easy Mode:* [Click here to caption it online](${response.memePageUrl})\n` +
+                        `🔄 *Another Round?:* Use \
+/meme [new name]\
+\n` +
                         tipMessage,
                         {
                             parse_mode: 'Markdown',
@@ -833,10 +839,11 @@ const triggerFullMemeSearchWithContext = async (bot: TelegramBot, chatId: number
                     : `💡 *Popular searches:* Drake, Distracted Boyfriend, This is Fine`;
 
                 await bot.sendMessage(chatId,
-                    '✅ *Meme search completed successfully!* ✅\n\n' +
-                    '🎨 Use the blank template to create your own\n' +
-                    '✨ Click "Create Your Own" to edit online\n' +
-                    '🔄 Search for another meme with `/meme [name]`\n\n' +
+                    `🏁 *And that's a wrap on "\${context.memeName}"!* 🏁\n\n` +
+                    `You're now an expert. What's next?\n\n` +
+                    `🎨 *Get Creative:* Grab the blank template.\n` +
+                    `🌐 *Easy Mode:* [Click here to caption it online](${context.memePageUrl})\n` +
+                    `🔄 *Another Round?:* Use \\/meme [new name]\n\n` +
                     tipMessage,
                     {
                         parse_mode: 'Markdown',
@@ -1003,7 +1010,6 @@ export const handleCallbackQuery = (bot: TelegramBot) => {
 
                 // FIXED: Pass the existing memePageUrl directly instead of reconstructing
                 await triggerFullMemeSearchWithContext(bot, chatId, context);
-                await memeCache.deleteUserContext(chatId);
 
             } else if (command === 'new' && action === 'blank') {
                 await bot.sendMessage(chatId, '🔍 *Ready for another blank template search!*\n\nUse `/blank [name]`', { parse_mode: 'Markdown' });
