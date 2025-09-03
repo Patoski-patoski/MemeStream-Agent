@@ -26,3 +26,7 @@ services:
         sync: false
       - key: UPSTASH_REDIS_URL
         sync: false
+crons:
+  - name: heartbeat
+    schedule: "*/10 * * * *"
+    command: "curl -f https://meme-bot-qvdj.onrender.com/health"

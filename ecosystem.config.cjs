@@ -10,7 +10,7 @@ module.exports = { // eslint-disable-line no-undef
         {
           name: "memestream-worker",
           script: "dist/worker.js",
-          instances: 3,      // spin up 3 workers
+          instances: 2,      // spin up 2 workers
           exec_mode: "fork",
         },
       ],
