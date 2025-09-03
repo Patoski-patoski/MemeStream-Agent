@@ -4,6 +4,8 @@ import dotenv from 'dotenv';
 import http from 'http';
 import TelegramBot from 'node-telegram-bot-api';
 import { startBot } from './bot.js';
+import { closeBrowser } from './browser.js';
+import { memeCache } from './cache.js';
 
 dotenv.config();
 
@@ -86,6 +88,20 @@ export const closeServer = (): Promise<void> => {
     });
 };
 
+/**
+ * Performs a graceful shutdown of the server, closing the browser instance,
+ * and disconnecting from the Redis cache.
+ * This function is bound to the SIGTERM and SIGINT events, allowing the process
+ * to exit cleanly when terminated.
+ */
+async function gracefulShutdown() {
+    console.log('Shutting down server...');
+    await closeServer();
+    await closeBrowser();
+    await memeCache.disconnect();
+    process.exit(0);
+}
+
 // Main application entry point
 async function main() {
     try {
@@ -104,5 +120,7 @@ async function main() {
 }
 
 if (process.env.JEST_WORKER_ID === undefined) {
+    process.on('SIGTERM', gracefulShutdown);
+    process.on('SIGINT', gracefulShutdown);
     main();
 }
