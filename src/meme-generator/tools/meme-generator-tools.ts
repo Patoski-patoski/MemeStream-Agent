@@ -15,6 +15,7 @@ if (process.env.NODE_ENV !== 'production') {
 
 // Configuration constants
 const MEME_SEARCH_URL: string = process.env.MEME_URL as string;
+const TAG_MEME_URL: string = process.env.TAG_MEME as string;
 
 
 // Validation
@@ -54,7 +55,7 @@ async function performSearch(page: Page, memeName: string): Promise<void> {
 /**
  * Extracts meme data from search results
  */
-async function extractMemeData(page: Page): Promise<MemeSearchResult> {
+async function extractMemeData(page: Page): Promise<MemeSearchResult | null> {
   await page.waitForSelector(SELECTORS.FIRST_RESULT, {
     timeout: TIMEOUTS.ELEMENT_WAIT
   });
@@ -66,6 +67,10 @@ async function extractMemeData(page: Page): Promise<MemeSearchResult> {
 
   const memePageHref = await firstResultLink.getAttribute('href');
   const memePageFullUrl = createFullUrl(memePageHref, MEME_SEARCH_URL);
+
+  if (memePageFullUrl === TAG_MEME_URL) {
+    return null;
+  }
 
   // Get preview image with better error handling
   const memePreviewImg = await page.$(SELECTORS.PREVIEW_IMAGE);
@@ -99,7 +104,12 @@ export async function searchMemeAndGetFirstLink(
     await performSearch(page, memeName);
 
     // Extract and return data
-    return await extractMemeData(page);
+    const memeData = await extractMemeData(page);
+    if (!memeData) {
+        console.log(`Search for "${memeName}" resulted in a generic tag page.`);
+        return null;
+    }
+    return memeData;
 
   } catch (error) {
     if (error instanceof MemeGeneratorError) {
