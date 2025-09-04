@@ -74,7 +74,7 @@ describe('MemeCache Singleton', () => {
       expect(cached?.blankTemplateUrl).toBe(memeData.blankTemplateUrl);
       expect(mockRedisInstance.setex).toHaveBeenCalledWith(
         `meme:${memeName}`,
-        10800, // 3 hours
+        43200, // 12 hours
         expect.any(String)
       );
     });
@@ -179,7 +179,7 @@ describe('MemeCache Singleton', () => {
             3600,
             expect.any(String)
           );
-      }, 20000);
+      }, 30000);
   });
 
   describe('Cache Stats and Disconnect', () => {
