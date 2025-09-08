@@ -27,16 +27,14 @@ RUN mkdir -p /app && chown -R botuser:botuser /app
 # Set the working directory
 WORKDIR /app
 
-# Switch to the non-root user
-USER botuser
-
-# Copy package files (owner is already botuser due to chown above)
+# Copy package files as root, then change ownership. This is simpler than switching users.
 COPY package*.json ./
+RUN chown botuser:botuser package*.json
 
-# Install only production dependencies as the non-root user
+# Install dependencies: fix cache permissions as root, then run npm as botuser
 RUN --mount=type=cache,target=/home/botuser/.npm \
-    npm ci --only=production && \
-    npm cache clean --force
+    chown -R botuser:botuser /home/botuser/.npm && \
+    su botuser -c "npm ci --only=production && npm cache clean --force"
 
 # Switch back to root to install system packages
 USER root
