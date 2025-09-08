@@ -12,4 +12,4 @@ done
 echo "Redis started."
 
 # Execute the main command as botuser
-exec su-exec botuser npm start
+exec su botuser -c "npm start"
