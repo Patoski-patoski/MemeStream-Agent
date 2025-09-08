@@ -147,3 +147,8 @@ jobs:
         run: |
           docker pull ${{ env.IMAGE_NAME }}:latest
           docker inspect ${{ env.IMAGE_NAME }}:latest
+
+      # 8. Trigger Render Deploy Hook
+      - name: Trigger Render Deploy
+        run: curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK }}
+        

@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # Build stage
-FROM node:20-slim AS builder
+FROM node:20-slim as builder
 WORKDIR /app
 
 # Copy package files
@@ -16,17 +16,22 @@ RUN npm run build
 
 # Final stage
 FROM mcr.microsoft.com/playwright:v1.54.1-noble
-WORKDIR /app
 
 # Create a non-root user and group first
 RUN groupadd -r botuser && useradd -r -g botuser -G audio,video botuser \
     && mkdir -p /home/botuser/Downloads
 
-# Copy package files with correct ownership
-COPY --chown=botuser:botuser package*.json ./
+# Create app directory and set ownership before setting WORKDIR
+RUN mkdir -p /app && chown -R botuser:botuser /app
 
-# Switch to the non-root user for npm install
+# Set the working directory
+WORKDIR /app
+
+# Switch to the non-root user
 USER botuser
+
+# Copy package files (owner is already botuser due to chown above)
+COPY package*.json ./
 
 # Install only production dependencies as the non-root user
 RUN --mount=type=cache,target=/home/botuser/.npm \
@@ -36,7 +41,7 @@ RUN --mount=type=cache,target=/home/botuser/.npm \
 # Switch back to root to install system packages
 USER root
 
-# Copy built application and other files with correct ownership
+# Copy built application and other files
 COPY --from=builder --chown=botuser:botuser /app/dist ./dist
 COPY --chown=botuser:botuser ecosystem.config.cjs ./
 COPY --chown=botuser:botuser start.sh ./
