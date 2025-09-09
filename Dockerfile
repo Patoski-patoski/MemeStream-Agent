@@ -54,6 +54,7 @@ RUN echo "appendonly yes" >> /etc/redis/redis.conf
 RUN chmod +x start.sh
 
 # Environment variables
+ENV PM2_HOME=/app/.pm2
 ENV NODE_OPTIONS="--max-old-space-size=1024"
 ENV NODE_ENV=production
 
