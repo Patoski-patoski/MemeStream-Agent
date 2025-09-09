@@ -839,7 +839,7 @@ const triggerFullMemeSearchWithContext = async (bot: TelegramBot, chatId: number
                     : `💡 *Popular searches:* Drake, Distracted Boyfriend, This is Fine`;
 
                 await bot.sendMessage(chatId,
-                    `🏁 *And that's a wrap on "\${context.memeName}"!* 🏁\n\n` +
+                    `🏁 *And that's a wrap on "${context.memeName}"!* 🏁\n\n` +
                     `You're now an expert. What's next?\n\n` +
                     `🎨 *Get Creative:* Grab the blank template.\n` +
                     `🌐 *Easy Mode:* [Click here to caption it online](${context.memePageUrl})\n` +
