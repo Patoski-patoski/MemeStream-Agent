@@ -83,6 +83,8 @@ export interface MemeJobData {
   chatId: number;
   memeName: string;
   loadingMessageId: number;
+  jobType: 'blank' | 'full';
+  context?: MemeContext;
 }
 
 // Result of a meme generation job

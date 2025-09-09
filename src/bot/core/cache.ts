@@ -14,8 +14,8 @@ import {
 class MemeCache {
     private redis: Redis;
     private readonly CACHE_TTL = 12 * 60 * 60; // 12 hours
-    private readonly CONTEXT_TTL = 60 * 60; // 1 hour for user contexts
-    private readonly POPULAR_MEMES_TTL = 1 * 60 * 60; // 1 hours
+    private readonly CONTEXT_TTL = 12 * 60 * 60; // 12 hours for user contexts
+    private readonly POPULAR_MEMES_TTL = 1 * 60 * 60; // 1 hour
     private readonly BLANK_MEMES_TTL =  7 * 24 * 60 * 60; // 1 week
     private readonly MEME_KEY_PREFIX = 'meme:';
     private readonly POPULAR_KEY = 'popular_memes';
