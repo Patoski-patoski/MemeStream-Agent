@@ -14,6 +14,11 @@
   - [🎯 About The Project](#-about-the-project)
     - [Architecture Overview](#architecture-overview)
   - [🚀 Key Features](#-key-features)
+  - [💡 Technical Deep Dive](#-technical-deep-dive)
+    - [1. Intelligent Meme Search \& Matching](#1-intelligent-meme-search--matching)
+    - [2. Optimized Performance \& Resource Management](#2-optimized-performance--resource-management)
+    - [3. Robust Error Handling \& Resilience](#3-robust-error-handling--resilience)
+    - [4. Observability \& Maintainability](#4-observability--maintainability)
   - [🛠️ Technical Stack](#️-technical-stack)
   - [🏁 Getting Started](#-getting-started)
     - [Prerequisites](#prerequisites)
@@ -57,6 +62,43 @@ This project demonstrates a robust, scalable, and resilient architecture, with a
 - **🧠 AI-Powered Context**: Provides historical and cultural background for each meme using Google Gemini.
 - **⚡ High Performance**: Optimized for speed and low memory usage, with concurrent processing and resource pooling.
 - **🛡️ Error Resilience**: Graceful degradation and intelligent retry logic ensure high availability.
+- **🔍 Advanced Search Capabilities**: Implements fuzzy string matching, partial matching, and Levenshtein distance for robust meme name recognition, ensuring users find their memes even with typos or incomplete queries.
+
+---
+
+## 💡 Technical Deep Dive
+
+This project showcases several advanced software engineering practices and technical implementations:
+
+### 1. Intelligent Meme Search & Matching
+
+Our bot goes beyond simple keyword matching. It employs a multi-layered approach to meme discovery:
+
+- **Exact & Partial Matching**: Prioritizes direct matches while also identifying memes where the search term is a substring.
+- **Levenshtein Distance**: For close but not exact matches (e.g., "Two Path" for "Two Paths"), we calculate the Levenshtein distance to find memes with minor typos or variations, ensuring a high success rate for user queries.
+- **Fuzzy Word Matching**: Breaks down complex search terms into individual words to find relevant memes even if the full phrase isn't an exact match.
+
+### 2. Optimized Performance & Resource Management
+
+- **Direct API Integration for `/blank`**: The `/blank` command now directly interacts with the Imgflip API, bypassing the job queue for instant responses and reduced latency.
+- **Playwright Browser Optimization**: The web scraping component utilizes Playwright with aggressive optimizations for serverless environments, including:
+
+  - `--no-sandbox`, `--disable-dev-shm-usage`, `--disable-gpu` flags for reduced memory footprint.
+  - Resource blocking (`image`, `font`, `media`) to minimize page load times and memory consumption during scraping.
+  - Page reuse and intelligent cleanup to prevent memory leaks.
+- **Redis Caching**: Extensive use of Redis for caching meme data, user contexts, and popular meme suggestions, significantly reducing API calls and improving response times.
+
+### 3. Robust Error Handling & Resilience
+
+- **Comprehensive Error Notifications**: Users receive clear, actionable feedback when memes are not found or when API calls fail.
+- **Graceful Shutdowns**: Implemented across the bot, worker, and Redis connections to ensure clean exits, prevent data corruption, and maintain system stability during restarts or deployments.
+- **Retry Mechanisms**: AI calls and other external interactions are wrapped with intelligent retry logic using exponential backoff, enhancing the bot's resilience to transient network issues or API rate limits.
+
+### 4. Observability & Maintainability
+
+- **Structured Logging**: Detailed console logs provide insights into job processing, cache hits/misses, and error occurrences.
+- **Modular Architecture**: The codebase is organized into distinct modules (bot core, meme generator, API, utilities) promoting maintainability, testability, and scalability.
+- **TypeScript**: Strong typing throughout the project enhances code quality, reduces bugs, and improves developer experience.
 
 ---
 
@@ -66,7 +108,7 @@ This project demonstrates a robust, scalable, and resilient architecture, with a
 - **Bot Framework**: node-telegram-bot-api
 - **Web Scraping**: Playwright
 - **AI**: Google Gemini (Function Calling, Streaming)
-- **Infrastructure**: Docker, Webhooks
+- **Infrastructure**: Docker, Webhooks, Redis (BullMQ for job queuing)
 
 ---
 

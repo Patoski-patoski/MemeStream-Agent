@@ -4,14 +4,11 @@ import { bot } from './bot/core/bot.js';
 import { memeQueue } from './bot/core/queue.js';
 import { MemeJobData, ProgressTracker } from './bot/types/types.js';
 import { getBrowser, closeBrowser } from './bot/core/browser.js';
-import { searchMemeAndGetFirstLink } from './meme-generator/tools/meme-generator-tools.js';
 import { memeCache } from './bot/core/cache.js';
-import { formatMemeNameForUrl } from './bot/utils/formatters.js';
 import { Page } from 'playwright';
 import { runMemeAgent } from './meme-generator/agents/memegeneratorAgent.js';
 import { updateProgress } from './bot/utils/utils.js';
 
-const MEME_URL = process.env.MEME_URL;
 
 console.log(`Worker started, waiting for jobs in queue: ${memeQueue.name}`);
 
@@ -165,7 +162,7 @@ const worker = new Worker<MemeJobData>(memeQueue.name, processor, {
     concurrency: 1,
 });
 
-worker.on('completed', (job: Job, result: any) => {
+worker.on('completed', (job: Job) => {
     console.log(`✅ Job ${job.id} completed successfully`);
 });
 
