@@ -6,6 +6,7 @@ import TelegramBot from 'node-telegram-bot-api';
 import { startBot } from './bot.js';
 import { closeBrowser } from './browser.js';
 import { memeCache } from './cache.js';
+import healthRoutes from '../../health-routes.js';
 
 dotenv.config();
 
@@ -14,6 +15,9 @@ const PORT = process.env.PORT || 3300;
 let server: http.Server;
 
 app.use(express.json());
+
+// Mount health routes under /api prefix
+app.use('/api', healthRoutes);
 
 app.get('/health', (req: Request, res: Response) => {
     console.log('Health check requested:', {
@@ -63,6 +67,12 @@ export const startServer = (bot: TelegramBot): Promise<http.Server> => {
             console.log(`🚀 Webhook server running on port ${PORT}`);
             console.log(`📡 Webhook URL: ${WEBHOOK_URL}${WEBHOOK_PATH}`);
             console.log(`🌐 Health check: ${WEBHOOK_URL}/health`);
+            console.log(`📊 API Health endpoints:`);
+            console.log(`   • Basic health: ${WEBHOOK_URL}/api/health`);
+            console.log(`   • Detailed health: ${WEBHOOK_URL}/api/health/detailed`);
+            console.log(`   • Readiness: ${WEBHOOK_URL}/api/ready`);
+            console.log(`   • Status: ${WEBHOOK_URL}/api/status`);
+            console.log(`   • Metrics: ${WEBHOOK_URL}/api/metrics`);
             console.log(`🎭 Meme bot ready to receive webhooks!`);
             resolve(server);
         });
