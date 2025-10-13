@@ -19,101 +19,7 @@ const processor = async (job: Job<MemeJobData>) => {
     const { chatId, memeName, loadingMessageId, jobType, context } = job.data;
     console.log(`Processing job ${job.id} for meme "${memeName}", type: ${jobType}`);
 
-    if (jobType === 'blank') {
-        try {
-            const foundMeme = await memeCache.findMemeInCache(memeName);
-
-            if (foundMeme) {
-                console.log(`✅ Found "${memeName}" in API cache as "${foundMeme.name}". Sending instantly.`);
-                await bot.deleteMessage(chatId, loadingMessageId);
-                const inlineKeyboard = {
-                    inline_keyboard: [
-                        [{ text: '🖼️ View Examples', callback_data: `view_examples_${chatId}` }, { text: '🔍 Full Meme Info', callback_data: `full_info_${chatId}` }],
-                        [{ text: '🔄 Get Another Blank', callback_data: `new_blank_${chatId}` }]
-                    ]
-                };
-                await memeCache.setUserContext(chatId, {
-                    memePageUrl: `https://imgflip.com/meme/${foundMeme.id}/${formatMemeNameForUrl(foundMeme.name)}`,
-                    blankTemplateUrl: foundMeme.url,
-                    memeName: foundMeme.name,
-                    currentPage: 1,
-                    lastRequestTime: Date.now()
-                });
-                await bot.sendPhoto(chatId, foundMeme.url, {
-                    caption: `🎨 *Blank Template: "${foundMeme.name}"*
-✨ *Create your own version:* [here](${MEME_URL}/${formatMemeNameForUrl(foundMeme.name)})
-💡 *Tips:* Right-click to save, use the link to add text, or use the buttons below.`,
-                    parse_mode: 'Markdown',
-                    reply_markup: inlineKeyboard
-                });
-                await memeCache.cacheBlankMeme(memeName, foundMeme.url);
-                return { success: true, url: foundMeme.url };
-            }
-
-            await bot.editMessageText(`🤔 *Meme not found in quick database...*
-🕵️‍♂️ Starting a deep search now. This might take a moment!`, {
-                chat_id: chatId,
-                message_id: loadingMessageId,
-                parse_mode: 'Markdown'
-            });
-
-            const browser = getBrowser();
-            if (!browser) throw new Error('Browser not initialized');
-
-            let page: Page | undefined;
-            try {
-                page = await browser.newPage();
-                const memeSearchResult = await searchMemeAndGetFirstLink(page, memeName);
-
-                if (!memeSearchResult || !memeSearchResult.memeBlankImgUrl) {
-                    await bot.editMessageText(`❌ *Deep search failed*
-🔍 No template found for "${memeName}"
-💡 *Suggestions:* Try a different name, check spelling, or use popular memes like Drake, Distracted Boyfriend, This is Fine.`, {
-                        chat_id: chatId,
-                        message_id: loadingMessageId,
-                        parse_mode: 'Markdown'
-                    });
-                    return { success: false, error: 'Template not found in deep search' };
-                }
-
-                await memeCache.cacheBlankMeme(memeName, memeSearchResult.memeBlankImgUrl);
-                await memeCache.setUserContext(chatId, {
-                    memePageUrl: memeSearchResult.memePageFullUrl,
-                    blankTemplateUrl: memeSearchResult.memeBlankImgUrl,
-                    memeName: memeName,
-                    currentPage: 1,
-                    lastRequestTime: Date.now()
-                });
-                await bot.deleteMessage(chatId, loadingMessageId);
-                const inlineKeyboard = {
-                    inline_keyboard: [
-                        [{ text: '🖼️ View Examples', callback_data: `view_examples_${chatId}` }, { text: '🔍 Full Meme Info', callback_data: `full_info_${chatId}` }],
-                        [{ text: '🔄 Get Another Blank', callback_data: `new_blank_${chatId}` }]
-                    ]
-                };
-                await bot.sendPhoto(chatId, memeSearchResult.memeBlankImgUrl, {
-                    caption: `🎨 *Blank Template: "${memeName}"*
-✨ *Create your own version:* [here](${MEME_URL}/${formatMemeNameForUrl(memeName)})
-💡 *Tips:* Right-click to save, use the link to add text, or use the buttons below.`,
-                    parse_mode: 'Markdown',
-                    reply_markup: inlineKeyboard
-                });
-                return { success: true, url: memeSearchResult.memeBlankImgUrl };
-            } finally {
-                if (page) await page.close();
-            }
-        } catch (error) {
-            console.error(`❌ Job ${job.id} failed for meme "${memeName}":`, error);
-            await bot.editMessageText(`❌ *Search failed for "${memeName}"*
-🔧 *What went wrong:* Meme not in database, network issues, or Imgflip API unavailable.
-💡 *Try:* A different name, check spelling, or use popular memes.`, {
-                chat_id: chatId,
-                message_id: loadingMessageId,
-                parse_mode: 'Markdown'
-            });
-            throw error;
-        }
-    } else if (jobType === 'full') {
+    if (jobType === 'full') {
         const browser = getBrowser();
         if (!browser) {
             await bot.sendMessage(chatId,
@@ -259,16 +165,20 @@ const worker = new Worker<MemeJobData>(memeQueue.name, processor, {
     concurrency: 1,
 });
 
-worker.on('completed', (job) => {
+worker.on('completed', (job: Job, result: any) => {
     console.log(`✅ Job ${job.id} completed successfully`);
 });
 
-worker.on('failed', (job, err) => {
+worker.on('failed', (job: Job | undefined, err: Error) => {
     console.error(`❌ Job ${job?.id} failed with error: ${err.message}`);
 });
 
 worker.on('error', (err) => {
     console.error('❌ Worker error:', err);
+});
+
+worker.on('stalled', (jobId: string) => {
+    console.warn(`⚠️ Job ${jobId} stalled`);
 });
 
 console.log(`✅ Worker is listening for jobs on queue: ${memeQueue.name}`);

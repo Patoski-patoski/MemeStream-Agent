@@ -210,37 +210,6 @@ export const queueMetrics = {
     errors: [] as Array<{ timestamp: Date; error: string; jobType?: string }>
 };
 
-// Enhanced logging and metrics
-memeQueue.on('completed', (job) => {
-    queueMetrics.jobsProcessed++;
-    queueMetrics.lastProcessedAt = new Date();
-    const processingTime = job.finishedOn! - job.processedOn!;
-    queueMetrics.averageProcessingTime = 
-        (queueMetrics.averageProcessingTime + processingTime) / 2;
-    
-    console.log(`✅ Job ${job.id} (${job.data.jobType}) completed in ${processingTime}ms`);
-});
-
-memeQueue.on('failed', (job, err) => {
-    queueMetrics.jobsFailed++;
-    const errorInfo = {
-        timestamp: new Date(),
-        error: err.message,
-        jobType: job?.data?.jobType
-    };
-    queueMetrics.errors.push(errorInfo);
-    
-    // Keep only last 50 errors
-    if (queueMetrics.errors.length > 50) {
-        queueMetrics.errors.shift();
-    }
-    
-    console.error(`❌ Job ${job?.id} (${job?.data?.jobType}) failed:`, err.message);
-});
-
-memeQueue.on('stalled', (jobId) => {
-    console.warn(`⚠️ Job ${jobId} stalled (worker may have crashed)`);
-});
 
 // Health check function
 export const getQueueHealth = async () => {

@@ -208,6 +208,8 @@ export async function generateMemeData(
   return await scrapeMemeImagesFromPage(page, searchResult.memePageFullUrl);
 }
 
+
+
 /**
  * Gets a blank meme template from the ImgFlip API or by scraping.
  * @param memeName The name of the meme to search for.

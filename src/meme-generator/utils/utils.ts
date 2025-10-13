@@ -11,7 +11,6 @@ import {
 
 import { RETRY_CONFIG } from "./constants.js";
 
-
 /**
  * Format a meme alt text string from a search result into a clean string to use for display.
  * Split the text at the first '|' and use the first part as the title.
@@ -29,6 +28,9 @@ export function formatMemeAltText(text: string): string {
     const subtitle = rest.split(/[;|,]/)[0].trim();
     return `${title}-${subtitle}`;
 }
+
+
+
 
 
 /**

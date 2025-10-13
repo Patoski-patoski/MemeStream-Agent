@@ -13,6 +13,8 @@ export const progressMessages = [
     "✨ Almost ready! Finalizing results..."
 ];
 
+
+
 /**
  * Updates a Telegram message to display the current progress of a meme search.
  *

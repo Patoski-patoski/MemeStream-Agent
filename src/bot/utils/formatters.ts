@@ -12,6 +12,7 @@ export const formatMemeNameForUrl = (memeName: string): string => {
         .replace(/^-+|-+$/g, '');
 };
 
+
 /**
  * Formats meme name for display by capitalizing the first letter of each word.
  * @param memeName The input string to format.

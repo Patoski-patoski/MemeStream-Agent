@@ -11,7 +11,8 @@ import {
     constructPageUrl
 } from '../utils/utils.js';
 import { memeCache } from './cache.js';
-import { memeQueue, addMemeJob } from './queue.js';
+import { addMemeJob } from './queue.js';
+import { getBlankMemeFromApi } from '../../meme-generator/api/imgflip.js';
 
 const MEME_URL = process.env.MEME_URL;
 
@@ -100,11 +101,11 @@ export const handleStartCommand = (bot: TelegramBot) => {
     });
 };
 
-    /**
-     * Registers a listener for the /help command to display a help message
-     * with available commands, examples, and tips.
-     * @param {TelegramBot} bot - The Telegram bot instance.
-     */
+/**
+ * Registers a listener for the /help command to display a help message
+ * with available commands, examples, and tips.
+ * @param {TelegramBot} bot - The Telegram bot instance.
+ */
 export const handleHelpCommand = (bot: TelegramBot) => {
     bot.onText(/^\/help$/, (msg) => {
         const chatId = msg.chat.id;
@@ -151,7 +152,7 @@ export const handleHelpCommand = (bot: TelegramBot) => {
 export const handleBlankMemeCommand = (bot: TelegramBot) => {
     bot.onText(/^\/blank( (.+))?/, async (msg, match) => {
         const chatId = msg.chat.id;
-        const memeName = match?.[1];
+        const memeName = match?.[2];
 
         if (!memeName) {
             bot.sendMessage(chatId,
@@ -170,39 +171,11 @@ export const handleBlankMemeCommand = (bot: TelegramBot) => {
         );
 
         try {
-            // Use enhanced queue function with rate limiting
-            await addMemeJob('blank-search', {
-                chatId,
-                memeName,
-                loadingMessageId: loadingMsg.message_id,
-                jobType: 'blank'
-            });
+            await getBlankMemeFromApi(chatId, memeName);
+            await bot.deleteMessage(chatId, loadingMsg.message_id);
         } catch (error) {
-            console.error('Error adding blank meme job to queue:', error);
-            
-            // Handle rate limiting errors specifically
-            if (error instanceof Error && error.message.includes('Rate limit')) {
-                await bot.editMessageText(
-                    '🚦 *Rate limit exceeded!*\n\n' +
-                    `${error.message}\n\n` +
-                    '💡 *Tip:* Try `/blank` for faster results or wait a moment.',
-                    {
-                        chat_id: chatId,
-                        message_id: loadingMsg.message_id,
-                        parse_mode: 'Markdown'
-                    }
-                );
-            } else {
-                await bot.editMessageText(
-                    '❌ *An error occurred while queueing the search*\n\n' +
-                    '🔧 Please try again or contact support if the issue persists',
-                    {
-                        chat_id: chatId,
-                        message_id: loadingMsg.message_id,
-                        parse_mode: 'Markdown'
-                    }
-                );
-            }
+            console.error('Error getting blank meme from API:', error);
+            // The user is already notified by the getBlankMemeFromApi function
         }
     });
 };
@@ -221,7 +194,7 @@ export const handleBlankMemeCommand = (bot: TelegramBot) => {
 export const handleMemeCommand = (bot: TelegramBot) => {
     bot.onText(/^\/meme( (.+))?/, async (msg, match) => {
         const chatId = msg.chat.id;
-        let memeName = match?.[1];
+        let memeName = match?.[2];
 
         if (!memeName) {
             bot.sendMessage(chatId,
@@ -300,7 +273,7 @@ export const handleMemeCommand = (bot: TelegramBot) => {
                     [
                         {
                             text: '✨ Create Your Own',
-                            url: cachedMeme.memePageUrl
+                            url: `${MEME_URL}/${formatMemeNameForUrl(cachedMeme.memeName)}`
                         }
                     ],
                     [
@@ -330,8 +303,7 @@ export const handleMemeCommand = (bot: TelegramBot) => {
                 `🏁 *And that's a wrap on "${memeName}"!* 🏁\n\n` +
                 `You're now an expert. What's next?\n\n` +
                 `🎨 *Get Creative:* Grab the blank template.\n` +
-                `🌐 *Easy Mode:* [Click here to caption it online](${cachedMeme.memePageUrl})
-` +
+                `🌐 *Easy Mode:* [Click here to caption it online](${cachedMeme.memePageUrl})` +
                 `🔄 *Another Round?:* Use /meme [new name]\n` +
                 tipMessage,
                 {
@@ -347,7 +319,7 @@ export const handleMemeCommand = (bot: TelegramBot) => {
         const foundMeme = await memeCache.findMemeInCache(memeName);
         if (foundMeme) {
             console.log(`🚀 Found "${memeName}" in API cache as "${foundMeme.name}" (ID: ${foundMeme.id})`);
-            
+
             // Create context from the API-found meme
             const memeContext: MemeContext = {
                 memePageUrl: `https://imgflip.com/meme/${foundMeme.id}/${formatMemeNameForUrl(foundMeme.name)}`,
@@ -359,6 +331,8 @@ export const handleMemeCommand = (bot: TelegramBot) => {
             };
 
             console.log(`Created context with URL: ${memeContext.memePageUrl}`);
+            console.log(`BlankMeme context with URL: ${memeContext.blankTemplateUrl}`);
+
 
             // Set context for user
             await memeCache.setUserContext(chatId, memeContext);
@@ -384,7 +358,7 @@ export const handleMemeCommand = (bot: TelegramBot) => {
             });
         } catch (error) {
             console.error('Error adding full meme job to queue:', error);
-            
+
             if (error instanceof Error && error.message.includes('Rate limit')) {
                 await bot.editMessageText(
                     '🚦 *Rate limit exceeded!*\n\n' +
@@ -452,9 +426,9 @@ const triggerFullMemeSearchWithContext = async (bot: TelegramBot, chatId: number
         if (tracker.currentStep < tracker.totalSteps) {
             tracker.currentStep++;
             const progressMessages = [
-                '🔍 *Using existing meme URL...*', 
-                '📚 *Gathering origin story...*', 
-                '🖼️ *Collecting image examples...*', 
+                '🔍 *Using existing meme URL...*',
+                '📚 *Gathering origin story...*',
+                '🖼️ *Collecting image examples...*',
                 '✅ *Finalizing results...*'
             ];
             await updateProgress(bot, tracker, progressMessages[tracker.currentStep - 1]);
@@ -554,7 +528,7 @@ const triggerFullMemeSearchWithContext = async (bot: TelegramBot, chatId: number
                         [
                             {
                                 text: '✨ Create Your Own',
-                                url: context.memePageUrl // Use context URL
+                                url: `${MEME_URL}/${formatMemeNameForUrl(context.memeName)}` // Use context URL
                             }
                         ],
                         [
@@ -574,11 +548,11 @@ const triggerFullMemeSearchWithContext = async (bot: TelegramBot, chatId: number
                 await bot.sendMessage(chatId,
                     `🏁 *And that's a wrap on "${context.memeName}"!* 🏁\n\n` +
                     `You're now an expert. What's next?\n\n` +
-                `🎨 *Get Creative:* Grab the blank template.\n` +
-                `🌐 *Easy Mode:* [Click here to caption it online](${context.memePageUrl})
+                    `🎨 *Get Creative:* Grab the blank template.\n` +
+                    `🌐 *Easy Mode:* [Click here to caption it online](${context.memePageUrl})
 ` +
-                `🔄 *Another Round?:* Use /meme [new name]\n\n` +
-                tipMessage,
+                    `🔄 *Another Round?:* Use /meme [new name]\n\n` +
+                    tipMessage,
                     {
                         parse_mode: 'Markdown',
                         reply_markup: inlineKeyboard
@@ -707,7 +681,6 @@ export const handleCallbackQuery = (bot: TelegramBot) => {
                 try {
                     page = await browser.newPage();
                     const images = await scrapeMemeImagesFromPage(page, context.memePageUrl);
-                    await bot.deleteMessage(chatId, loadingMsg.message_id);
 
                     if (!images || images.length === 0) {
                         await bot.sendMessage(chatId, `❌ *No examples found for "${context.memeName}"*`, { parse_mode: 'Markdown' });
@@ -758,8 +731,7 @@ ${image.alt.replace(/"/g, '').substring(0, 200)}`;
                 }
                 await bot.sendPhoto(chatId, context.blankTemplateUrl, {
                     caption: `🎨 *Blank Template for "${context.memeName}"*\n\n` +
-                        `✨ *Create your own version:*` +
-                        `🔗 ${context.memePageUrl}`,
+                        `✨ *Create your own version:* [here](${MEME_URL}/${formatMemeNameForUrl(context.memeName)})`,
                     parse_mode: 'Markdown'
                 });
 
