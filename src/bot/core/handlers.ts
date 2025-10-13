@@ -11,7 +11,7 @@ import {
     constructPageUrl
 } from '../utils/utils.js';
 import { memeCache } from './cache.js';
-import { memeQueue } from './queue.js';
+import { memeQueue, addMemeJob } from './queue.js';
 
 const MEME_URL = process.env.MEME_URL;
 
@@ -170,7 +170,8 @@ export const handleBlankMemeCommand = (bot: TelegramBot) => {
         );
 
         try {
-            await memeQueue.add('blank-search', {
+            // Use enhanced queue function with rate limiting
+            await addMemeJob('blank-search', {
                 chatId,
                 memeName,
                 loadingMessageId: loadingMsg.message_id,
@@ -178,15 +179,30 @@ export const handleBlankMemeCommand = (bot: TelegramBot) => {
             });
         } catch (error) {
             console.error('Error adding blank meme job to queue:', error);
-            await bot.editMessageText(
-                '❌ *An error occurred while queueing the search*\n\n' +
-                '🔧 Please try again or contact support if the issue persists',
-                {
-                    chat_id: chatId,
-                    message_id: loadingMsg.message_id,
-                    parse_mode: 'Markdown'
-                }
-            );
+            
+            // Handle rate limiting errors specifically
+            if (error instanceof Error && error.message.includes('Rate limit')) {
+                await bot.editMessageText(
+                    '🚦 *Rate limit exceeded!*\n\n' +
+                    `${error.message}\n\n` +
+                    '💡 *Tip:* Try `/blank` for faster results or wait a moment.',
+                    {
+                        chat_id: chatId,
+                        message_id: loadingMsg.message_id,
+                        parse_mode: 'Markdown'
+                    }
+                );
+            } else {
+                await bot.editMessageText(
+                    '❌ *An error occurred while queueing the search*\n\n' +
+                    '🔧 Please try again or contact support if the issue persists',
+                    {
+                        chat_id: chatId,
+                        message_id: loadingMsg.message_id,
+                        parse_mode: 'Markdown'
+                    }
+                );
+            }
         }
     });
 };
@@ -359,12 +375,39 @@ export const handleMemeCommand = (bot: TelegramBot) => {
             { parse_mode: 'Markdown' }
         );
 
-        await memeQueue.add('full-search', {
-            chatId,
-            memeName,
-            loadingMessageId: loadingMsg.message_id,
-            jobType: 'full'
-        });
+        try {
+            await addMemeJob('full-search', {
+                chatId,
+                memeName,
+                loadingMessageId: loadingMsg.message_id,
+                jobType: 'full'
+            });
+        } catch (error) {
+            console.error('Error adding full meme job to queue:', error);
+            
+            if (error instanceof Error && error.message.includes('Rate limit')) {
+                await bot.editMessageText(
+                    '🚦 *Rate limit exceeded!*\n\n' +
+                    `${error.message}\n\n` +
+                    '💡 *Tip:* Use `/blank [name]` for faster results.',
+                    {
+                        chat_id: chatId,
+                        message_id: loadingMsg.message_id,
+                        parse_mode: 'Markdown'
+                    }
+                );
+            } else {
+                await bot.editMessageText(
+                    '❌ *Failed to start meme search*\n\n' +
+                    '🔧 Please try again or use `/blank [name]` for quick templates',
+                    {
+                        chat_id: chatId,
+                        message_id: loadingMsg.message_id,
+                        parse_mode: 'Markdown'
+                    }
+                );
+            }
+        }
     });
 };
 
