@@ -35,7 +35,7 @@ import {
 import { memeCache } from "../../bot/core/cache.js";
 
 if (process.env.NODE_ENV !== 'production') {
-  dotenv.config();
+    dotenv.config();
 }
 
 const modelName = process.env.MODEL_NAME!;
@@ -103,8 +103,7 @@ export async function runMemeAgent(
     let page: Page | undefined;
 
     try {
-        console.log(`
-🚀 Starting meme agent for: "${formattedMemeName}" ${isDirectUrl ? '(direct URL mode)' : ''}`);
+        console.log(`🚀 Starting meme agent for: "${formattedMemeName}" ${isDirectUrl ? '(direct URL mode)' : ''}`);
         console.log('💾 Memory before start:', getMemoryUsage());
 
         // 🎯 STEP 1: Check cache first (unless it's a direct URL request)
@@ -303,7 +302,9 @@ export async function runMemeAgent(
                     },
                     {
                         role: "user",
-                        parts: [{ text: `Tell me the fascinating origin story of the "${formattedMemeName}" meme.` }]
+                        parts: [{
+                            text: `Tell me the fascinating origin story of the "${formattedMemeName}" meme.`
+                        }]
                     }
                 ];
 

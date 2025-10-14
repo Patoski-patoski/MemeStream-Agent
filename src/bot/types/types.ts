@@ -113,16 +113,6 @@ export interface ImgflipApiResponse {
   };
 }
 
-export interface ImgflipMeme {
-  id: string;
-  name: string;
-  url: string;
-  width: number;
-  height: number;
-  box_count: number;
-  captions: number;
-}
-
 export interface CachedImgflipData {
   memes: ImgflipMeme[];
   timestamp: number;

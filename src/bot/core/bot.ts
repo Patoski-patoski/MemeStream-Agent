@@ -7,6 +7,7 @@ import {
     handleHelpCommand,
     handleMemeCommand,
     handleBlankMemeCommand,
+    handleFindMemeCommand,
     handleCallbackQuery,
     setupBotCommands
 } from './handlers.js';
@@ -83,6 +84,7 @@ export async function startBot() {
             handleHelpCommand(bot);
             handleMemeCommand(bot);
             handleBlankMemeCommand(bot);
+            handleFindMemeCommand(bot);
             handleCallbackQuery(bot);
             console.log('✅ Bot handlers configured successfully');
             return bot;

@@ -2,6 +2,7 @@
 import TelegramBot from 'node-telegram-bot-api';
 import { Page } from 'playwright';
 import { getBrowser } from './browser.js';
+import { findMemeByDescription } from '../../meme-generator/agents/memeFinderAgent.js';
 import { runMemeAgent } from '../../meme-generator/agents/memegeneratorAgent.js';
 import { scrapeMemeImagesFromPage } from '../../meme-generator/tools/meme-generator-tools.js';
 import { ProgressTracker, MemeContext } from '../types/types.js';
@@ -31,6 +32,9 @@ const MEME_URL = process.env.MEME_URL;
  * @param {TelegramBot} bot - The Telegram bot instance.
  * @returns {Promise<void>}
  */
+/**
+ * Sets the bot commands menu with the new /find command
+ */
 export const setupBotCommands = async (bot: TelegramBot) => {
     try {
         const commands = [
@@ -47,6 +51,10 @@ export const setupBotCommands = async (bot: TelegramBot) => {
                 description: '🎨 Get blank meme template instantly'
             },
             {
+                command: 'find',
+                description: '🤖 Describe a meme to find matching templates'
+            },
+            {
                 command: 'help',
                 description: '❓ Show help and usage instructions'
             }
@@ -55,13 +63,12 @@ export const setupBotCommands = async (bot: TelegramBot) => {
         await bot.setMyCommands(commands);
         console.log('✅ Bot commands menu set successfully!');
 
-        // Optional: Set commands for specific scopes
-        // For private chats only
+        // For private chats
         await bot.setMyCommands(commands, {
             scope: { type: 'all_private_chats' }
         });
 
-        // For group chats (if bot should works in groups)
+        // For group chats
         await bot.setMyCommands(commands, {
             scope: { type: 'all_group_chats' }
         });
@@ -70,6 +77,7 @@ export const setupBotCommands = async (bot: TelegramBot) => {
         console.error('❌ Error setting bot commands:', error);
     }
 };
+
 
 /**
  * Registers a listener for the /start command to display a welcome message
@@ -106,38 +114,233 @@ export const handleStartCommand = (bot: TelegramBot) => {
  * with available commands, examples, and tips.
  * @param {TelegramBot} bot - The Telegram bot instance.
  */
+
+
+
+/**
+ * Updated help command with /find information
+ */
 export const handleHelpCommand = (bot: TelegramBot) => {
     bot.onText(/^\/help$/, (msg) => {
         const chatId = msg.chat.id;
         bot.sendMessage(chatId,
-            '🤖 **Meme Generator Bot Help** 🤖\n\n' +
-            '📝 **Available Commands:**\n\n' +
-            '🎭 `/start` - Welcome message and introduction' +
-            '🔍 `/meme [name]` - Full meme search with history' +
-            '   • Example: `/meme Distracted Boyfriend`' +
-            '   • Includes origin story, history, examples' +
+            '🤖 *Meme Generator Bot Help* 🤖\n\n' +
+            '📝 *Available Commands:*\n\n' +
+            '🎭 `/start` - Welcome message and introduction\n\n' +
+            
+            '🔍 `/meme [name]` - Full meme search with history\n' +
+            '   • Example: `/meme Distracted Boyfriend`\n' +
+            '   • Includes origin story, history, examples\n' +
             '   • Takes 15-20 seconds for complete results\n\n' +
-            '🎨 `/blank [name]` - Get blank template instantly' +
-            '   • Example: `/blank Drake hotline bling`' +
-            '   • Quick access to customizable templates' +
+            
+            '🎨 `/blank [name]` - Get blank template instantly\n' +
+            '   • Example: `/blank Drake hotline bling`\n' +
+            '   • Quick access to customizable templates\n' +
             '   • Instant results with editing links\n\n' +
+            
+            '🤖 `/find [description]` - Describe a meme to find it\n' +
+            '   • Example: `/find spiderman pointing at each other`\n' +
+            '   • AI-powered search by description\n' +
+            '   • Perfect when you don\'t know the meme name\n' +
+            '   • Returns multiple matching templates\n\n' +
+            
             '❓ `/help` - Show this help message\n\n' +
-            '💡 **Popular Memes to Try:**' +
-            '• Drake hotline bling' +
-            '• Distracted Boyfriend' +
-            '• This is Fine' +
-            '• Expanding Brain' +
-            '• Chill guy' +
-            '• Two buttons' +
-            '• Epic handshake' +
-            '🎯 **Tips:**' +
-            '• Use `/blank` for quick templates' +
-            '• Use `/meme` for complete meme information' +
-            '• Check spelling if meme not found' +
-            '• Try alternative meme names' +
-            '🔗 **Need more help?** Contact @tnemyojne',
+            
+            '💡 *Popular Memes to Try:*\n' +
+            '• Drake hotline bling\n' +
+            '• Distracted Boyfriend\n' +
+            '• This is Fine\n' +
+            '• Expanding Brain\n' +
+            '• Chill guy\n' +
+            '• Two buttons\n' +
+            '• Epic handshake\n\n' +
+            
+            '🎯 *Tips:*\n' +
+            '• Use `/find` when you don\'t know the meme name\n' +
+            '• Use `/blank` for quick templates\n' +
+            '• Use `/meme` for complete meme information\n' +
+            '• Check spelling if meme not found\n' +
+            '• Try alternative meme names\n\n' +
+            
+            '🔗 *Need more help?* Contact @tnemyojne',
             { parse_mode: 'Markdown' }
         );
+    });
+};
+
+// src/bot/core/handlers.ts - Add this new handler
+
+/**
+ * Handles the /find command, which uses AI to interpret a meme description
+ * and returns matching blank templates from the cached API.
+ * @param {TelegramBot} bot - The Telegram bot instance.
+ */
+export const handleFindMemeCommand = (bot: TelegramBot) => {
+    bot.onText(/^\/find( (.+))?/, async (msg, match) => {
+        const chatId = msg.chat.id;
+        const memeDescription = match?.[2];
+
+        if (!memeDescription) {
+            bot.sendMessage(chatId,
+                '🔍 *Describe the meme you\'re looking for!*\n\n' +
+                '📝 *Examples:*\n' +
+                '• `/find That meme where spiderman points at each other`\n' +
+                '• `/find Guy choosing between two buttons`\n' +
+                '• `/find Drake approving and disapproving`\n' +
+                '• `/find Distracted boyfriend looking at another girl`\n\n' +
+                '💡 *Tip:* Describe what you see in the meme!',
+                { parse_mode: 'Markdown' }
+            );
+            return;
+        }
+
+        const loadingMsg = await bot.sendMessage(chatId,
+            '🤖 *Analyzing your description...*\n\n' +
+            `🔍 Searching for: "${memeDescription}"\n` +
+            '⏳ This might take a moment...',
+            { parse_mode: 'Markdown' }
+        );
+
+        try {
+            // Use the findMemeByDescription agent
+            const foundMemes = await findMemeByDescription(chatId, memeDescription);
+
+            // Delete loading message
+            await bot.deleteMessage(chatId, loadingMsg.message_id);
+
+            if (!foundMemes || foundMemes.length === 0) {
+                await bot.sendMessage(chatId,
+                    '❌ *No matching memes found*\n\n' +
+                    `I couldn't find any memes matching: "${memeDescription}"\n\n` +
+                    '💡 *Try:*\n' +
+                    '• Using more specific details\n' +
+                    '• Describing the visual elements\n' +
+                    '• Mentioning popular characters or scenarios\n\n' +
+                    '🔄 Use `/find [description]` to try again',
+                    { parse_mode: 'Markdown' }
+                );
+                return;
+            }
+
+            // If multiple memes found, show all options
+            if (foundMemes.length > 1) {
+                await bot.sendMessage(chatId,
+                    `🎯 *Found ${foundMemes.length} matching memes!*\n\n` +
+                    `Here are the templates that match your description:`,
+                    { parse_mode: 'Markdown' }
+                );
+
+                // Send each matching meme
+                for (let i = 0; i < Math.min(foundMemes.length, 5); i++) {
+                    const meme = foundMemes[i];
+
+                    const inlineKeyboard = {
+                        inline_keyboard: [
+                            [
+                                { text: '🖼️ View Examples', callback_data: `view_examples_${chatId}` },
+                                { text: '🔍 Full Info', callback_data: `full_info_${chatId}` }
+                            ],
+                            [
+                                { text: '✨ Create Meme', url: `${MEME_URL}/${formatMemeNameForUrl(meme.name)}` }
+                            ]
+                        ]
+                    };
+
+                    // Set context for each meme
+                    await memeCache.setUserContext(chatId, {
+                        memePageUrl: `https://imgflip.com/meme/${meme.id}/${formatMemeNameForUrl(meme.name)}`,
+                        blankTemplateUrl: meme.url,
+                        memeName: meme.name,
+                        memeId: meme.id,
+                        currentPage: 1,
+                        lastRequestTime: Date.now()
+                    });
+
+                    await bot.sendPhoto(chatId, meme.url, {
+                        caption:
+                            `🎨 *Match ${i + 1}/${Math.min(foundMemes.length, 5)}: "${meme.name}"*\n\n` +
+                            `📊 *Popularity:* ${meme.captions?.toLocaleString() || 'N/A'} uses\n` +
+                            `📐 *Dimensions:* ${meme.width}x${meme.height}\n` +
+                            `💬 *Text boxes:* ${meme.box_count}\n\n` +
+                            `✨ *Create your version:* [Click here](${MEME_URL}/${formatMemeNameForUrl(meme.name)})`,
+                        parse_mode: 'Markdown',
+                        reply_markup: inlineKeyboard
+                    });
+
+                    // Small delay between messages
+                    if (i < Math.min(foundMemes.length, 5) - 1) {
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                    }
+                }
+
+                if (foundMemes.length > 5) {
+                    await bot.sendMessage(chatId,
+                        `📋 *Note:* Showing top 5 of ${foundMemes.length} matches\n\n` +
+                        '💡 *Tip:* Use a more specific description to narrow results',
+                        { parse_mode: 'Markdown' }
+                    );
+                }
+
+            } else {
+                // Single meme found - perfect match!
+                const meme = foundMemes[0];
+
+                const inlineKeyboard = {
+                    inline_keyboard: [
+                        [
+                            { text: '🖼️ View Examples', callback_data: `view_examples_${chatId}` },
+                            { text: '🔍 Full Meme Info', callback_data: `full_info_${chatId}` }
+                        ],
+                        [
+                            { text: '✨ Create Your Own', url: `${MEME_URL}/${formatMemeNameForUrl(meme.name)}` }
+                        ],
+                        [
+                            { text: '🔄 Find Another', callback_data: `new_search_${chatId}` }
+                        ]
+                    ]
+                };
+
+                // Set context
+                await memeCache.setUserContext(chatId, {
+                    memePageUrl: `https://imgflip.com/meme/${meme.id}/${formatMemeNameForUrl(meme.name)}`,
+                    blankTemplateUrl: meme.url,
+                    memeName: meme.name,
+                    memeId: meme.id,
+                    currentPage: 1,
+                    lastRequestTime: Date.now()
+                });
+
+                await bot.sendPhoto(chatId, meme.url, {
+                    caption:
+                        `🎯 *Perfect Match: "${meme.name}"*\n\n` +
+                        `📊 *Popularity:* ${meme.captions?.toLocaleString() || 'N/A'} uses\n` +
+                        `📐 *Dimensions:* ${meme.width}x${meme.height}\n` +
+                        `💬 *Text boxes:* ${meme.box_count}\n\n` +
+                        `✨ *Create your version:* [Click here](${MEME_URL}/${formatMemeNameForUrl(meme.name)})\n\n` +
+                        `💡 *Want more info?* Click "Full Meme Info" below!`,
+                    parse_mode: 'Markdown',
+                    reply_markup: inlineKeyboard
+                });
+            }
+
+        } catch (error) {
+            console.error('Error in /find command:', error);
+
+            await bot.editMessageText(
+                '❌ *Search failed*\n\n' +
+                '🔧 Something went wrong while searching for memes\n\n' +
+                '💡 *Try:*\n' +
+                '• Simplifying your description\n' +
+                '• Using different keywords\n' +
+                '• Checking your internet connection\n\n' +
+                '🔄 Use `/find [description]` to try again',
+                {
+                    chat_id: chatId,
+                    message_id: loadingMsg.message_id,
+                    parse_mode: 'Markdown'
+                }
+            );
+        }
     });
 };
 

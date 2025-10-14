@@ -510,70 +510,95 @@ Give me 5 different popular memes:`
         console.log('🔌 Redis connection closed');
     }
 
+  
     /**
      * Search for a meme in cached API data with fuzzy matching
      */
     async findMemeInCache(searchTerm: string): Promise<ImgflipMeme | null> {
         const allMemes = await this.getMemesFromCacheOrApi();
+        searchTerm = this.capitalizeWords(searchTerm);
         const normalizedSearch = searchTerm.toLowerCase().trim();
 
-        // Exact match first
-        let foundMeme = allMemes.find(meme =>
-            meme.name.toLowerCase().trim() === normalizedSearch
-        );
-
-        if (foundMeme) {
-            console.log(`🎯 Exact match found: "${foundMeme.name}"`);
-            return foundMeme;
-        }
-
-        // Partial match
-        foundMeme = allMemes.find(meme =>
-            meme.name.toLowerCase().includes(normalizedSearch) ||
-            normalizedSearch.includes(meme.name.toLowerCase())
-        );
-
-        if (foundMeme) {
-            console.log(`📍 Partial match found: "${foundMeme.name}" for "${searchTerm}"`);
-            return foundMeme;
-        }
-
-        // Levenshtein distance matching
-        const LEVENSHTEIN_THRESHOLD = 3; // Adjust as needed
         let bestMatch: ImgflipMeme | null = null;
-        let minDistance = Infinity;
+        let highestScore = 0;
+
+        const LEVENSHTEIN_THRESHOLD = 3; // Adjust as needed
+        // console.log("All memes names: ", memeNames);
 
         for (const meme of allMemes) {
             const memeName = meme.name.toLowerCase();
-            const distance = this.levenshteinDistance(normalizedSearch, memeName);
+            let currentScore = 0;
 
-            if (distance < minDistance) {
-                minDistance = distance;
+            // Strategy 1: Exact match (highest priority)
+            if (memeName === normalizedSearch) {
+                currentScore = 100; // Very high score for exact match
+            }
+            // Strategy 2: Partial match (contains or is contained by)
+            else if (memeName.includes(normalizedSearch) || normalizedSearch.includes(memeName)) {
+                // Score based on how much of the meme name is covered by the search term, or vice versa
+                console.log(`Partial match found: "${memeName}" for "${normalizedSearch}"`);
+                const coverage = Math.min(normalizedSearch.length, memeName.length) / Math.max(normalizedSearch.length, memeName.length);
+                currentScore = 80 + (coverage * 10); // High score for partial match
+            }
+            // Strategy 3: Levenshtein distance matching
+            else {
+                const distance = this.levenshteinDistance(normalizedSearch, memeName);
+                if (distance <= LEVENSHTEIN_THRESHOLD) {
+                    // Score inversely proportional to distance, higher for shorter distances
+                    console.log(`Levenshtein match found: "${memeName}" (distance: ${distance}) for "${normalizedSearch}"`);
+                    currentScore = 70 - (distance * 5); // Score decreases with distance
+                }
+            }
+
+            // Strategy 4: Fuzzy matching with individual words (lowest priority, but still important)
+            if (currentScore < 70) { // Only apply if not already a strong match
+                const searchWords = normalizedSearch.split(/\s+/).filter(word => word.length > 2);
+                const memeWords = memeName.split(/\s+/).filter(word => word.length > 2); // Filter short words from meme name too
+
+                if (searchWords.length > 0 && memeWords.length > 0) {
+                    let matchedWordsInMeme = 0; // How many words from memeName are in searchWords
+                    for (const mWord of memeWords) {
+                        if (searchWords.some(sWord => sWord.includes(mWord) || mWord.includes(sWord))) {
+                            matchedWordsInMeme++;
+                        }
+                    }
+
+                    let matchedWordsInSearch = 0; // How many words from searchWords are in memeName
+                    for (const sWord of searchWords) {
+                        if (memeWords.some(mWord => mWord.includes(sWord) || sWord.includes(mWord))) {
+                            matchedWordsInSearch++;
+                        }
+                    }
+
+                    let wordMatchScore = 0;
+                    if (matchedWordsInMeme > 0) {
+                        // Score based on how many meme words are found in the search query
+                        const memeWordCoverage = (matchedWordsInMeme / memeWords.length);
+                        wordMatchScore = memeWordCoverage * 60; // Max 60 if all meme words are found
+                    }
+
+                    // Also consider how many search words are found in the meme name, but with less weight
+                    if (matchedWordsInSearch > 0) {
+                        const searchWordCoverage = (matchedWordsInSearch / searchWords.length);
+                        wordMatchScore = Math.max(wordMatchScore, searchWordCoverage * 40); // Max 40
+                    }
+
+                    currentScore = Math.max(currentScore, wordMatchScore);
+                }
+            }
+
+            if (currentScore > highestScore) {
+                highestScore = currentScore;
                 bestMatch = meme;
             }
         }
 
-        if (bestMatch && minDistance <= LEVENSHTEIN_THRESHOLD) {
-            console.log(`✨ Levenshtein match found: "${bestMatch.name}" (distance: ${minDistance}) for "${searchTerm}"`);
+        if (bestMatch && highestScore > 0) {
+            console.log(`✨ Best match found: "${bestMatch.name}" (score: ${highestScore}) for "${searchTerm}"`);
             return bestMatch;
         }
 
-
-        // Fuzzy matching with individual words
-        const searchWords = normalizedSearch.split(/\s+/).filter(word => word.length > 2);
-        if (searchWords.length > 0) {
-            foundMeme = allMemes.find(meme => {
-                const memeName = meme.name.toLowerCase();
-                return searchWords.some(word => memeName.includes(word));
-            });
-
-            if (foundMeme) {
-                console.log(`🔍 Fuzzy match found: "${foundMeme.name}" for "${searchTerm}"`);
-                return foundMeme;
-            }
-        }
-
-        console.log(`❌ No match found for "${searchTerm}" in ${allMemes.length} cached memes`);
+        console.log(`❌ No strong match found for "${searchTerm}" in ${allMemes.length} cached memes`);
         return null;
     }
 
@@ -593,6 +618,14 @@ Give me 5 different popular memes:`
         return null;
     }
 
+    private capitalizeWords(str: string) {
+        return str
+            .split(' ') // Split the string into words
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1)) // Capitalize each word
+            .join(' '); // Join the words back into a single string
+}
+
+
     /**
      * Computes the Levenshtein distance between two strings.
      *
@@ -605,10 +638,8 @@ Give me 5 different popular memes:`
      * This implementation is based on the Wagner-Fischer algorithm, with a time complexity of O(m*n), where m and n are the lengths of the strings.
      */
     private levenshteinDistance(s1: string, s2: string): number {
-        s1 = s1.toLowerCase();
-
-
-        s2 = s2.toLowerCase();
+        s1 = this.capitalizeWords(s1);
+        s2 = this.capitalizeWords(s2);
 
         const costs: number[] = [];
         for (let i = 0; i <= s1.length; i++) {

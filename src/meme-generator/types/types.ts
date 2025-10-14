@@ -70,3 +70,13 @@ export interface BlankMemeTemplate {
   url: string;
   pageUrl: string | null;
 }
+
+export interface ImgflipMeme {
+  id: string;
+  name: string;
+  url: string;
+  width: number;
+  height: number;
+  box_count: number;
+  captions: number;
+}
