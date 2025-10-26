@@ -4,7 +4,7 @@ import { jest, describe, beforeEach, afterEach, it, expect } from '@jest/globals
 const mockRedisInstance = {
   on: jest.fn().mockReturnThis(),
   quit: jest.fn().mockResolvedValue(undefined as never),
-  ping: jest.fn().mockResolvedValue('PONG'),
+  ping: jest.fn().mockResolvedValue('PONG' as never),
   status: 'ready',
 };
 const mockQueueInstance = {
