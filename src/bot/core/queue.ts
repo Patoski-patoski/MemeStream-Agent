@@ -45,23 +45,24 @@ const getRedisConnection = () => {
     }
 
     // Enhanced connection event handlers
-    connection.on('connect', () => {
+    connection.on('connect', async () => {
         console.log('✅ BullMQ Redis connected');
     });
     
-    connection.on('ready', () => {
+    connection.on('ready', async () => {
         console.log('🚀 BullMQ Redis ready for operations');
     });
     
-    connection.on('error', (err) => {
-        console.error('❌ BullMQ Redis connection error:', err.message);
+    connection.on('error', async (err) => {
+        const error = new Error('BullMQ Redis connection error');
+        console.error('❌ BullMQ Redis connection error:', error);
     });
     
-    connection.on('close', () => {
+    connection.on('close', async () => {
         console.warn('⚠️ BullMQ Redis connection closed');
     });
     
-    connection.on('reconnecting', (delay: number) => {
+    connection.on('reconnecting', async (delay: number) => {
         console.log(`🔄 BullMQ Redis reconnecting in ${delay}ms`);
     });
 
